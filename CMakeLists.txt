@@ -20,6 +20,12 @@ target_include_directories(genmetaballs_core
     ${CMAKE_CURRENT_SOURCE_DIR}/genmetaballs/src/cuda
 )
 
+# Enable Position Independent Code for shared library linking
+set_target_properties(genmetaballs_core PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  CUDA_SEPARABLE_COMPILATION ON
+)
+
 find_package(Python 3.13 
   REQUIRED COMPONENTS Interpreter Development.Module
   OPTIONAL_COMPONENTS Development.SABIModule)

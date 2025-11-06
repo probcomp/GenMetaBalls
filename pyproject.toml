@@ -30,7 +30,11 @@ ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
 
+[tool.pixi.pypi-dependencies]
+genmetaballs = { path = ".", editable = true }
+
 [tool.pixi.tasks]
 
 [tool.scikit-build]
 wheel.py-api = "cp313"  # Or your Python version
+wheel.packages = ["genmetaballs/src/genmetaballs"]
