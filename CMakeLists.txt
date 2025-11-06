@@ -8,12 +8,17 @@ set(CMAKE_CXX_STANDARD 20)
 
 
 
-add_library(genmetaballs_core)
+add_library(genmetaballs_core
+  genmetaballs/src/cuda/core/utils.cu
+  genmetaballs/src/cuda/core/utils.h
+  genmetaballs/src/cuda/core/add.cuh
+)
 
-# TODO: add the headers and sources under `genmetaballs/src/cuda/core` to the
-# `gen_meta_balls_core` library.
-
-# TODO: make any fixes and improvements if necessary for CUDA integration
+# Set include directories for the core library
+target_include_directories(genmetaballs_core
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/genmetaballs/src/cuda
+)
 
 find_package(Python 3.13 
   REQUIRED COMPONENTS Interpreter Development.Module
@@ -26,8 +31,11 @@ nanobind_add_module(
   _genmetaballs_bindings
   NB_STATIC
   STABLE_ABI
-  src/cuda/bindings.cu
+  genmetaballs/src/cuda/bindings.cu
 )
+
+# Link the core library to the bindings module
+target_link_libraries(_genmetaballs_bindings PRIVATE genmetaballs_core)
 
 # Install the extension into the Python package directory
 install(TARGETS _genmetaballs_bindings LIBRARY DESTINATION genmetaballs)
