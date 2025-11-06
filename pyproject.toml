@@ -1,0 +1,25 @@
+[build-system]
+requires = ["scikit-build-core", "nanobind"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "genmetaballs"
+authors = [
+    "Arijit Dasgupta <arijitdg@mit.edu>",
+    "Matin Ghavami <mghavami@mit.edu>",
+    "Xiaoyan Wang <xyw@mit.edu>"
+]
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = ["numpy"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+name = "python"
+platforms = ["linux-64"]
+version = "0.0.1"
+
+[tool.pixi.tasks]
+
+[tool.scikit-build]
+wheel.py-api = "cp313"  # Or your Python version
