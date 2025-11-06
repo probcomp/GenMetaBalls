@@ -4,12 +4,11 @@
 #include <cuda_runtime.h>
 #include <vector>
 
-#include "add.h"
+#include "add.cuh"
 
 int main()
 {
     constexpr uint32_t N = 4096;
-    constexpr uint32_t NBYTES = N * sizeof(float);
     constexpr uint32_t block_dim = 1024;
     constexpr uint32_t grid_dim = 4;
 
