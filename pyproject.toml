@@ -36,8 +36,18 @@ genmetaballs = { path = ".", editable = true }
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
 
+[tool.pixi.environments]
+default = { solve-group = "default", features = ["dev"] }
+
 [tool.scikit-build]
 wheel.py-api = "cp313"                             # Or your Python version
 wheel.packages = ["genmetaballs/src/genmetaballs"]
 # use a persistent build directory to speed up rebuild & testing
 build-dir = "build"
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib", "--doctest-modules"]
+testpaths = ["tests", "src"]
