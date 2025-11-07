@@ -17,8 +17,8 @@ __global__ void add_kernel(
 
 template<uint32_t grid_dim, uint32_t block_dim>
 std::vector<float> gpu_add(
-    const std::vector<float> a_vec,
-    const std::vector<float> b_vec
+    const std::vector<float> &a_vec,
+    const std::vector<float> &b_vec
 ) {
     const uint32_t n = a_vec.size();
     const uint32_t nbytes = n * sizeof(float);
