@@ -1,0 +1,39 @@
+[build-system]
+requires = ["scikit-build-core", "nanobind"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "genmetaballs"
+authors = [
+    {name = "Arijit Dasgupta", email = "arijitdg@mit.edu"},
+    {name = "Matin Ghavami", email = "mghavami@mit.edu"},
+    {name = "Xiaoyan Wang", email = "xyw@mit.edu"}
+]
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = ["numpy"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+name = "python"
+platforms = ["linux-64"]
+version = "0.0.1"
+
+[tool.pixi.dependencies]
+python = ">=3.13"
+cmake = ">=3.24"
+cuda-toolkit = "12.8.*"
+c-compiler = "*"
+cxx-compiler = "*"
+ninja = "*"
+scikit-build-core = "*"
+nanobind = "*"
+
+[tool.pixi.pypi-dependencies]
+genmetaballs = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+
+[tool.scikit-build]
+wheel.py-api = "cp313"  # Or your Python version
+wheel.packages = ["genmetaballs/src/genmetaballs"]
