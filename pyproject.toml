@@ -5,9 +5,9 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "genmetaballs"
 authors = [
-    {name = "Arijit Dasgupta", email = "arijitdg@mit.edu"},
-    {name = "Matin Ghavami", email = "mghavami@mit.edu"},
-    {name = "Xiaoyan Wang", email = "xyw@mit.edu"}
+    { name = "Arijit Dasgupta", email = "arijitdg@mit.edu" },
+    { name = "Matin Ghavami", email = "mghavami@mit.edu" },
+    { name = "Xiaoyan Wang", email = "xyw@mit.edu" },
 ]
 version = "0.0.1"
 requires-python = ">=3.13"
@@ -28,12 +28,16 @@ cxx-compiler = "*"
 ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
+gtest = ">=1.17.0,<2"
 
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+ctest = "ctest --test-dir build"
 
 [tool.scikit-build]
-wheel.py-api = "cp313"  # Or your Python version
+wheel.py-api = "cp313"                             # Or your Python version
 wheel.packages = ["genmetaballs/src/genmetaballs"]
+# use a persistent build directory to speed up rebuild & testing
+build-dir = "build"

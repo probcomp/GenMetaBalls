@@ -1,12 +1,11 @@
-#include <cassert>
 #include <cstdint>
-#include <cstdlib>
 #include <cuda_runtime.h>
 #include <vector>
 
-#include "add.cuh"
+#include <gtest/gtest.h>
+#include "core/add.cuh"
 
-int main()
+TEST(GpuAddTest, BasicAddition)
 {
     constexpr uint32_t N = 4096;
     constexpr uint32_t block_dim = 1024;
@@ -21,9 +20,8 @@ int main()
 
     auto gpu_sum_vec = gpu_add<grid_dim, block_dim>(a_vec, b_vec);
 
-    for(uint32_t i = 0; i < N; i++)
-        if(cpu_sum_vec[i] != gpu_sum_vec[i])
-            return 1;
-
-    return 0;
+    for(uint32_t i = 0; i < N; i++) {
+        EXPECT_FLOAT_EQ(cpu_sum_vec[i], gpu_sum_vec[i])
+            << "Mismatch at index " << i;
+    }
 }
