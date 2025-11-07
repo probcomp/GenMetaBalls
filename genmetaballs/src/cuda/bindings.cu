@@ -1,5 +1,3 @@
-//TODO: add whatever is needed for the CUDA bindings to work
-
 #include <cstdint>
 
 #include <nanobind/nanobind.h>

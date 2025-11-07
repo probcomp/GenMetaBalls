@@ -6,7 +6,9 @@ check_language(CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
+################
+# Core Library #
+################
 
 add_library(genmetaballs_core
   genmetaballs/src/cuda/core/utils.cu
@@ -25,6 +27,10 @@ set_target_properties(genmetaballs_core PROPERTIES
   POSITION_INDEPENDENT_CODE ON
   CUDA_SEPARABLE_COMPILATION ON
 )
+
+############
+# Bindings #
+############
 
 find_package(Python 3.13 
   REQUIRED COMPONENTS Interpreter Development.Module
