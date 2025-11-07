@@ -21,7 +21,6 @@ version = "0.0.1"
 
 [tool.pixi.dependencies]
 python = ">=3.13"
-numpy = "*"
 cmake = ">=3.24"
 cuda-toolkit = "12.8.*"
 c-compiler = "*"
