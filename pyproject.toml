@@ -35,6 +35,8 @@ genmetaballs = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
+pytest = "pytest"
+test = { depends-on = ["ctest", "pytest"] }
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }

@@ -1,5 +1,7 @@
 # GenMetaBalls - Context and Setup Notes
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 GenMetaBalls is a hybrid Python/CUDA project that demonstrates GPU-accelerated
@@ -8,6 +10,52 @@ computing from Python. The project uses:
 - **Python Bindings**: nanobind (modern, lightweight alternative to pybind11)
 - **Package Manager**: pixi (conda-based dependency management)
 - **Languages**: Python 3.13, C++20, CUDA
+
+**Critical Architecture Pattern:**
+The project uses a three-layer architecture:
+1. **CUDA Layer** (`genmetaballs/src/cuda/core/`): Header-only template kernels (e.g., `add.cuh`)
+2. **Bindings Layer** (`genmetaballs/src/cuda/bindings.cu`): nanobind module `_genmetaballs_bindings` that instantiates templates with fixed parameters
+3. **Python Layer** (`genmetaballs/src/genmetaballs/`): User-facing Python API that wraps the bindings
+
+This layering allows compile-time optimization via templates while exposing a simple Python interface.
+
+## Common Commands
+
+### Initial Setup
+```bash
+pixi install
+```
+
+### After Modifying C++/CUDA Code
+```bash
+pixi reinstall genmetaballs
+```
+This triggers scikit-build-core to rebuild the C++/CUDA code and reinstall the Python module.
+
+### Testing
+```bash
+# C++/CUDA tests (Google Test via ctest)
+pixi run ctest
+
+# Python tests (pytest)
+pixi run pytest
+
+# All tests
+pixi run test
+```
+
+## Build Process Details
+
+When `pixi install` or `pixi reinstall genmetaballs` runs, scikit-build-core:
+1. Configures CMake with settings from `pyproject.toml`
+2. Builds three CMake targets:
+   - `genmetaballs_core`: Static library with CUDA kernels and utilities
+   - `_genmetaballs_bindings`: nanobind extension module (installed to Python package)
+   - `test_add`: C++ test executable
+3. Installs `_genmetaballs_bindings.abi3.so` into the `genmetaballs` package directory
+4. Makes `genmetaballs` importable in Python
+
+**Important:** The build uses a persistent build directory (`build/`) specified in `pyproject.toml` to speed up rebuilds.
 
 ## Directory Structure
 
@@ -31,57 +79,35 @@ GenMetaBalls/
     └── test_add.cu                  # Standalone C++ test
 ```
 
-## Current Implementation
+## Adding New CUDA Functionality
 
-### GPU Addition Function
+To add a new GPU function following the existing pattern:
 
-The project implements a simple GPU vector addition as a demonstration:
+1. **Create kernel in `cuda/core/`**: Header-only template (`.cuh` file)
+2. **Expose in `bindings.cu`**: Add `m.def()` call to instantiate template with fixed parameters
+3. **Wrap in Python**: Create wrapper in `genmetaballs/` and export in `__init__.py`
+4. **Rebuild**: Run `pixi reinstall genmetaballs`
+5. **Test**: Add C++ test in `tests/test_*.cu` and Python test in `tests/test_*.py`
 
-**CUDA Kernel** (core/add.cuh):
-- `add_kernel`: Element-wise addition on GPU
-- `gpu_add<grid_dim, block_dim>`: Template function that:
-  1. Allocates device memory
-  2. Copies input vectors to GPU
-  3. Launches kernel with specified grid/block dimensions
-  4. Copies results back to CPU
-  5. Cleans up device memory
+## Testing
 
-**Python Bindings** (bindings.cu):
-- Uses nanobind to expose GPU functions to Python
-- Module name: `_genmetaballs_bindings`
-- Constants: GRID_DIM=4096, BLOCK_DIM=1024
-- Exposes: `gpu_add` function with fixed grid/block dimensions
+The project has two test suites:
 
-**Python Interface** (gpu_add.py):
-- Wrapper function: `gpu_add(a: list[float], b: list[float]) -> list[float]`
-- Delegates to C++ binding
+1. **C++/CUDA Tests**: Configured using Google Test (powered by ctest)
+   ```bash
+   pixi run ctest
+   ```
 
-### Test Suite
+2. **Python Tests**: Configured using pytest
+   ```bash
+   pixi run pytest
+   ```
 
-**Python Test** (test_gpu_add.py):
-- Tests 8196 random float32 values
-- Verifies results within 1e-6 tolerance
-- Currently has import issues that need fixing
+3. **Run All Tests**: Run both test suites together
+   ```bash
+   pixi run test
+   ```
 
-**C++ Test** (test_add.cu):
-- Tests 4096 elements with deterministic values
-- Verifies exact equality
-- Standalone test without Python dependencies
-
-## Expected Workflow
-
-Once fixed, the workflow should be:
-
-1. **Install dependencies**: `pixi install`
-   - Should install Python, CUDA toolkit, compilers, build tools
-
-2. **Run tests**: `pixi run python tests/test_gpu_add.py`
-   - Loads the compiled `_genmetaballs_bindings` module
-   - Calls GPU addition function
-   - Verifies results
-
-3. **Reinstalling and rebuilding**: `pixi reinstall genmetaballs`
-   - After editing the source codes rebuild using this comment
 
 ## Build Process (scikit-build-core)
 
@@ -91,6 +117,13 @@ When `pixi install` runs, scikit-build-core will:
 3. Create the nanobind module `_genmetaballs_bindings`
 4. Install the module into the Python package directory
 5. Make `genmetaballs` importable in Python
+
+## Platform and Dependencies
+
+- Platform: linux-64 only
+- Python: 3.13+ required (uses stable ABI via nanobind)
+- CUDA: 12.8.x
+- CMake: 4.1+ (note: higher than typical minimum due to CUDA requirements)
 
 ## Notes
 
