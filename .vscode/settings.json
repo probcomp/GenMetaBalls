@@ -1,0 +1,4 @@
+{
+  "python.testing.pytestEnabled": true,
+  "cmake.cmakePath": "${workspaceFolder}/.pixi/envs/default/bin/cmake"
+}
