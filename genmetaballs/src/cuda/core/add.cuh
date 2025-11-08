@@ -5,8 +5,8 @@
 #include "utils.h"
 
 __global__ void add_kernel(
-    float const *a, 
-    float const *b, 
+    float const *a,
+    float const *b,
     const uint32_t n,
     float *sum
 ) {
@@ -32,7 +32,7 @@ std::vector<float> gpu_add(
     CUDA_CHECK(cudaMemcpy(b, b_vec.data(), nbytes, cudaMemcpyHostToDevice));
     add_kernel<<<grid_dim, block_dim>>>(a, b, n, sum);
     CUDA_CHECK(cudaMemcpy(sum_vec.data(), sum, nbytes, cudaMemcpyDeviceToHost));
-    
+
     CUDA_CHECK(cudaFree(a));
     CUDA_CHECK(cudaFree(b));
     CUDA_CHECK(cudaFree(sum));

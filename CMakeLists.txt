@@ -32,7 +32,7 @@ set_target_properties(genmetaballs_core PROPERTIES
 # Bindings #
 ############
 
-find_package(Python 3.13 
+find_package(Python 3.13
   REQUIRED COMPONENTS Interpreter Development.Module
   OPTIONAL_COMPONENTS Development.SABIModule)
 
@@ -51,3 +51,33 @@ target_link_libraries(_genmetaballs_bindings PRIVATE genmetaballs_core)
 
 # Install the extension into the Python package directory
 install(TARGETS _genmetaballs_bindings LIBRARY DESTINATION genmetaballs)
+
+
+################
+# Testing      #
+################
+
+enable_testing()
+
+# Find GTest
+find_package(GTest CONFIG REQUIRED)
+
+# C++/CUDA test executable
+add_executable(test_add
+  tests/test_add.cu
+)
+
+target_link_libraries(test_add
+  PRIVATE
+    genmetaballs_core
+    GTest::gtest
+    GTest::gtest_main
+)
+
+# Enable CUDA for the test executable
+set_target_properties(test_add PROPERTIES
+  CUDA_SEPARABLE_COMPILATION ON
+)
+
+include(GoogleTest)
+gtest_discover_tests(test_add)
