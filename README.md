@@ -22,4 +22,16 @@ pixi run ctest
 
 ### Python Tests
 
-Python tests through [pytest](https://docs.pytest.org/en/stable/) will be coming soon.
+Python tests are configured using [pytest](https://docs.pytest.org/en/stable/). Run them with:
+
+```bash
+pixi run pytest
+```
+
+### Run All Tests
+
+To run both C++/CUDA and Python tests together:
+
+```bash
+pixi run test
+```
