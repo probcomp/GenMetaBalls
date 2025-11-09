@@ -1,4 +1,16 @@
 {
   "python.testing.pytestEnabled": true,
-  "cmake.cmakePath": "${workspaceFolder}/.pixi/envs/default/bin/cmake"
+  "cmake.cmakePath": "${workspaceFolder}/.pixi/envs/default/bin/cmake",
+  "cmake.configureSettings": {
+    "CMAKE_CUDA_COMPILER": "${workspaceFolder}/.pixi/envs/default/bin/nvcc",
+    "CMAKE_CXX_COMPILER": "${workspaceFolder}/.pixi/envs/default/bin/c++",
+    "Python_EXECUTABLE": "${workspaceFolder}/.pixi/envs/default/bin/python",
+    "CMAKE_PREFIX_PATH": [
+      "${workspaceFolder}/.pixi/envs/default",
+      "${workspaceFolder}/.pixi/envs/default/x86_64-conda-linux-gnu/sysroot/usr"
+    ]
+  },
+  "cmake.environment": {
+    "NVCC_PREPEND_FLAGS": "-ccbin=${workspaceFolder}/.pixi/envs/default/bin/c++"
+  }
 }
