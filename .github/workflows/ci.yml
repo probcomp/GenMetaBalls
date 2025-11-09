@@ -1,0 +1,34 @@
+name: Format and Lint
+
+on:
+  push:
+    branches:
+      - '**'  # Run on push to any branch
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  format-and-lint:
+    name: Format and Lint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: "latest"
+      
+      - name: Install dependencies
+        run: pixi install --all-environments
+      
+      - name: Check formatting
+        run: pixi run format-check
+      
+      - name: Lint code
+        run: pixi run lint
+
