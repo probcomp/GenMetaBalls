@@ -1,0 +1,28 @@
+#!/bin/bash
+# Pre-push hook for GenMetaBalls
+# Runs all tests before allowing push
+
+set -e
+
+echo "🧪 Running pre-push tests..."
+
+# Run all tests (C++/CUDA + Python)
+TEST_OUTPUT=$(pixi run test 2>&1)
+TEST_EXIT=$?
+
+if [ $TEST_EXIT -ne 0 ]; then
+    echo ""
+    echo "$TEST_OUTPUT"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ Tests failed. Push blocked."
+    echo "💡 Fix the failing tests before pushing."
+    exit 1
+fi
+
+# Extract summary lines for success case (less verbose)
+echo "$TEST_OUTPUT" | grep -E "(tests passed|passed in|Test #)" | head -5
+echo ""
+echo "✨ All tests passed! Push allowed."
+exit 0
+

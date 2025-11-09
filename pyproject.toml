@@ -34,6 +34,7 @@ clang-tools = ">=18,<20"  # Includes clang-format and clang-tidy
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
 ruff = ">=0.8.0"
+pre-commit = ">=3.0.0"
 
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
@@ -59,6 +60,13 @@ format-python = { cmd = "scripts/format/python.sh" }
 format-check-python = { cmd = "scripts/format/python.sh check" }
 lint-python = { cmd = "scripts/lint/python.sh" }
 lint-python-fix = { cmd = "scripts/lint/python-fix.sh" }
+# Git hooks (using pre-commit framework)
+install-hooks = { cmd = "pre-commit install && pre-commit install --hook-type pre-push" }
+# Dev setup: install git hooks (for development workflow)
+dev-setup = { cmd = "pre-commit install && pre-commit install --hook-type pre-push" }
+# Pre-commit tasks
+pre-commit-run = { cmd = "pre-commit run --all-files" }
+pre-commit-run-push = { cmd = "scripts/test-quiet.sh" }
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }
