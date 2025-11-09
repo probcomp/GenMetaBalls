@@ -4,7 +4,9 @@ Let's get the ball rolling with blazing fast CUDA kernels!
 
 ## Installation
 
-For initial installation, run:
+### Usage Setup
+
+To simply run `genmetaballs`:
 
 ```bash
 pixi install
@@ -12,20 +14,14 @@ pixi install
 
 ### Development Setup
 
-To install and use GenMetaBalls:
-
-```bash
-pixi install
-```
-
-For development (formatting, linting, git hooks, testing):
+For development:
 
 ```bash
 pixi install
 pixi run dev-setup
 ```
 
-This sets up [pre-commit](https://pre-commit.com/) git hooks:
+The `dev-setup` task sets up [pre-commit](https://pre-commit.com/) git hooks:
 - **Pre-commit**: Formats and lints code before each commit
 - **Pre-push**: Runs all tests before pushes
 
@@ -34,7 +30,7 @@ Run the hooks manually if needed:
 pixi run pre-commit-run        # Run formatting/linting checks
 pixi run pre-commit-run-push   # Run all tests
 ```
-```
+
 
 ## Testing
 
