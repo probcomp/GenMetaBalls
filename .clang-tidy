@@ -1,0 +1,37 @@
+---
+# Clang-tidy configuration for CUDA/C++ project
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  cppcoreguidelines-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  -bugprone-easily-swappable-parameters,
+  -readability-identifier-length,
+  -readability-identifier-naming,
+  -readability-named-parameter,
+  -readability-implicit-bool-conversion,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-owning-memory,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: 'file'
+CheckOptions:
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctions
+    value: true
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'std::vector;.*Iterator'
+  - key: modernize-use-nodiscard.Macros
+    value: 'CUDA_CHECK'
+

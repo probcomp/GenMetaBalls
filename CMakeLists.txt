@@ -6,6 +6,9 @@ check_language(CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# Generate compile_commands.json for clang-tidy and other tools
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 ################
 # Core Library #
 ################

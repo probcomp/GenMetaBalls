@@ -35,3 +35,37 @@ To run both C++/CUDA and Python tests together:
 ```bash
 pixi run test
 ```
+
+## Formatting & Linting
+
+### Formatting
+
+Format all files (C++/CUDA + Python):
+```bash
+pixi run format
+```
+
+Check formatting without modifying files:
+```bash
+pixi run format-check
+```
+
+### Linting
+
+Lint all files:
+```bash
+pixi run lint
+```
+
+Auto-fix linting issues:
+```bash
+pixi run lint-fix
+```
+
+**Language-specific commands:**
+- `format-cpp`, `format-python` - Format specific language
+- `format-check-cpp`, `format-check-python` - Check formatting for specific language
+- `lint-cpp`, `lint-python` - Lint specific language
+- `lint-cpp-fix`, `lint-python-fix` - Auto-fix linting issues for specific language
+- `lint-full` - C++/CUDA linting with compile_commands.json (more accurate)
+- `lint-full-fix` - Auto-fix C++/CUDA issues using compile_commands.json

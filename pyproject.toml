@@ -29,14 +29,36 @@ ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
 gtest = ">=1.17.0,<2"
+clang-tools = ">=18,<20"  # Includes clang-format and clang-tidy
 
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
+ruff = ">=0.8.0"
 
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
 pytest = "pytest"
 test = { depends-on = ["ctest", "pytest"] }
+compile-commands = "cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+# Combined formatting and linting (C++/CUDA + Python)
+format = { cmd = "scripts/format/all.sh" }
+format-check = { cmd = "scripts/format/check-all.sh" }
+lint = { cmd = "scripts/lint/all.sh" }
+lint-fix = { cmd = "scripts/lint/fix-all.sh" }
+# C++/CUDA only
+format-cpp = { cmd = "scripts/format/cpp.sh" }
+format-check-cpp = { cmd = "scripts/format/cpp.sh check" }
+lint-cpp = { cmd = "scripts/lint/cpp.sh" }
+lint-cpp-fix = { cmd = "scripts/lint/cpp-fix.sh" }
+# lint-full: Uses compile_commands.json for more accurate C++/CUDA linting
+#           (includes proper include paths, defines, and compiler flags from CMake)
+lint-full = { cmd = "scripts/lint/cpp.sh full" }
+lint-full-fix = { cmd = "scripts/lint/cpp-fix.sh full" }
+# Python only
+format-python = { cmd = "scripts/format/python.sh" }
+format-check-python = { cmd = "scripts/format/python.sh check" }
+lint-python = { cmd = "scripts/lint/python.sh" }
+lint-python-fix = { cmd = "scripts/lint/python-fix.sh" }
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }
@@ -53,3 +75,31 @@ dev = ["pytest"]
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib", "--doctest-modules"]
 testpaths = ["tests", "src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["genmetaballs"]
