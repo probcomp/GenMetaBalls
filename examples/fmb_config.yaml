@@ -41,7 +41,7 @@ random_seed: 42                 # Random seed for reproducibility
 
 # Input/Output
 io:
-  mesh_file: "data/cow.obj"     # Path to input mesh file
-  output_dir: "output"          # Directory for output files
+  mesh_file: "data/cow/cow.obj"     # Path to input mesh file
+  output_dir: "output/fmb"          # Directory for output files
   save_model: true              # Whether to save trained model
   model_filename: "fuzzy_cow_shape.pkl"  # Trained model filename

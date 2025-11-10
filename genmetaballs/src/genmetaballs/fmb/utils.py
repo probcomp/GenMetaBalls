@@ -1,7 +1,10 @@
 # Adapted from https://github.com/leonidk/fuzzy-metaballs/blob/main/util.py
 # Original author: leonidk
 
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.special import erf
 
 
 def image_grid(
@@ -43,7 +46,7 @@ def image_grid(
     bleed = 0
     fig.subplots_adjust(left=bleed, bottom=bleed, right=(1 - bleed), top=(1 - bleed))
 
-    for ax, im in zip(axarr.ravel(), images):
+    for ax, im in zip(axarr.ravel(), images, strict=False):
         if rgb:
             # only render RGB channels
             ax.imshow(im[..., :3], interpolation=interp)
@@ -53,10 +56,6 @@ def image_grid(
         if not show_axes:
             ax.set_axis_off()
     plt.tight_layout()
-
-
-import numpy as np
-from scipy.special import erf
 
 
 class DegradeLR:
@@ -116,11 +115,7 @@ class DegradeLR:
                         print("early exit due to max drops")
                     return True
                 if self.print_debug:
-                    print(
-                        "dropping LR to {:.2e} after {} steps".format(
-                            self.step_func(0), self.counter - 1
-                        )
-                    )
+                    print(f"dropping LR to {self.step_func(0):.2e} after {self.counter - 1} steps")
                 min_len = self.window + self.p_window
                 if self.last_drop_len == min_len and len_of_opt == min_len:
                     if self.print_debug:
@@ -129,9 +124,6 @@ class DegradeLR:
                 self.last_drop_len = len(self.train_val)
                 self.train_val = []
         return False
-
-
-import jax.numpy as jnp
 
 
 def compute_normals(camera_rays, depth_py_px, eps=1e-20):

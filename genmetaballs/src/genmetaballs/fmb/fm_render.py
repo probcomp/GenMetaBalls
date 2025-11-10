@@ -100,7 +100,7 @@ def render_func_rays(means, prec_full, weights_log, camera_starts_rays, beta_2, 
             norm_est = jnp.where(r @ norm_est < 0, norm_est, -norm_est)
             return res, d2, norm_est
 
-        return jax.vmap((perf_ray))(camera_starts_rays)
+        return jax.vmap(perf_ray)(camera_starts_rays)
 
     zs, stds, projp = jax.vmap(perf_idx)(prec, weights_log, means)  # jit perf
 
@@ -134,7 +134,7 @@ def render_func_rays_hffm(means, prec_full, weights_log, camera_starts_rays):
     def perf_idx(prcI, w, meansI):
         prc = prcI.T
         # prc = jnp.diag(jnp.sign(jnp.diag(prc))) @ prc
-        div = jnp.prod(jnp.diag(jnp.abs(prc))) + 1e-20
+        # div = jnp.prod(jnp.diag(jnp.abs(prc))) + 1e-20
 
         def perf_ray(r_t):
             r = r_t[0]
@@ -157,7 +157,7 @@ def render_func_rays_hffm(means, prec_full, weights_log, camera_starts_rays):
             norm_est = jnp.where(r @ norm_est < 0, norm_est, -norm_est)
             return res, d2, norm_est
 
-        res, d2, projp = jax.vmap((perf_ray))(camera_starts_rays)  # jit perf
+        res, d2, projp = jax.vmap(perf_ray)(camera_starts_rays)  # jit perf
         return res, d2, projp
 
     zs, stds, projp = jax.vmap(perf_idx)(prec, weights_log, means)  # jit perf

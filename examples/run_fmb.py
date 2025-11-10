@@ -19,38 +19,29 @@ Based on: "Approximate Differentiable Rendering with Algebraic Surfaces"
           https://arxiv.org/abs/2207.10606
 """
 
-import os
-import sys
-
-# Check for --cpu flag BEFORE any other imports (especially JAX)
-if "--cpu" in sys.argv:
-    os.environ["JAX_PLATFORMS"] = "cpu"
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
 import argparse
+import os
 import time
-from collections import defaultdict
 from pathlib import Path
 
-# Set matplotlib to non-interactive backend BEFORE importing pyplot
-import matplotlib
-import yaml
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pyrender
 import transforms3d
 import trimesh
+import yaml
 from tqdm import tqdm
 
 # Import local utilities
-from util import DegradeLR, image_grid
+from genmetaballs.fmb.utils import DegradeLR, image_grid
+
+CURRENT_DIR = Path(__file__).parent
+PROJECT_ROOT = CURRENT_DIR.parent
 
 
-def load_config(config_path="config.yaml"):
+def load_config(config_path):
     """Load configuration from YAML file"""
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         return yaml.safe_load(f)
 
 
@@ -63,7 +54,10 @@ def parse_args():
 
     # General options
     parser.add_argument(
-        "--config", type=str, default="config.yaml", help="Path to YAML configuration file"
+        "--config",
+        type=str,
+        default=str(CURRENT_DIR / "fmb_config.yaml"),
+        help="Path to YAML configuration file",
     )
     parser.add_argument("--cpu", action="store_true", help="Force JAX to use CPU instead of GPU")
 
@@ -175,7 +169,9 @@ def calculate_depth_quality_metrics(estimated_depths, ground_truth_depths):
 
     metrics = {}
 
-    for i, (est_depth, gt_depth) in enumerate(zip(estimated_depths, ground_truth_depths)):
+    for i, (est_depth, gt_depth) in enumerate(
+        zip(estimated_depths, ground_truth_depths, strict=False)
+    ):
         # Convert to numpy arrays
         est_depth = np.array(est_depth)
         gt_depth = np.array(gt_depth)
@@ -215,7 +211,7 @@ def calculate_depth_quality_metrics(estimated_depths, ground_truth_depths):
                 ssim = cv2.SSIM(est_2d, gt_2d)
             else:
                 ssim = 0.0
-        except:
+        except:  # noqa: E722
             ssim = 0.0
 
         # Correlation coefficient
@@ -268,13 +264,10 @@ def main():
     opt_shape_scale = config["optimization"]["opt_shape_scale"]
     clip_alpha = config["optimization"]["clip_alpha"]
 
-    mesh_file = config["io"]["mesh_file"]
-    output_dir = config["io"]["output_dir"]
+    mesh_file = PROJECT_ROOT / config["io"]["mesh_file"]
+    output_dir = PROJECT_ROOT / config["io"]["output_dir"]
 
     random_seed = config["random_seed"]
-
-    # Timing dictionary
-    timings = defaultdict(list)
 
     # ============================================================================
     # BANNER
@@ -304,16 +297,9 @@ def main():
     if args.cpu:
         print("🖥️  JAX forced to CPU mode")
 
-    # Start virtual display for headless rendering
-    from pyvirtualdisplay import Display
-
-    display = Display(visible=0, size=(1400, 900))
-    display.start()
-    print("✓ Virtual display started (1400x900)")
-
     # Create output directory for plots
-    os.makedirs(output_dir, exist_ok=True)
-    print(f"✓ Output directory: ./{output_dir}/")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"✓ Output directory: {output_dir}")
     print()
 
     # ============================================================================
@@ -373,7 +359,7 @@ def main():
     trans = []
     render_start = time.perf_counter()
 
-    for i, quat in enumerate(tqdm(rand_quats, desc="Rendering", unit="view")):
+    for quat in tqdm(rand_quats, desc="Rendering", unit="view"):
         R = transforms3d.quaternions.quat2mat(quat)
         loc = np.array([0, 0, 3 * shape_scale]) @ R + center
         trans.append(loc)
@@ -398,12 +384,7 @@ def main():
         ref_colors.append(color)
         ref_depths.append(target_depth)
 
-        for node in list(scene.light_nodes):
-            scene.remove_node(node)
-            time.sleep(0.01)
-        for node in list(scene.camera_nodes):
-            scene.remove_node(node)
-            time.sleep(0.01)
+        r.delete()
 
     render_time = (time.perf_counter() - render_start) * 1000
     print(f"\n✓ Rendered {num_views} views in {render_time:.1f} ms")
@@ -441,9 +422,15 @@ def main():
     print("-" * 80)
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-    import fm_render
+    # Check for --cpu flag BEFORE importing JAX
+    if args.cpu:
+        os.environ["JAX_PLATFORMS"] = "cpu"
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
     import jax
     import jax.numpy as jnp
+
+    import genmetaballs.fmb.fm_render as fm_render
 
     # Check JAX configuration
     print(f"JAX version:        {jax.__version__}")
@@ -481,7 +468,7 @@ def main():
         [np.identity(3) * rand_sphere_size / shape_scale for _ in range(NUM_MIXTURE)]
     )
 
-    print(f"Initialization:     Random Gaussians near center")
+    print("Initialization:     Random Gaussians near center")
     print(f"Mean position:      {center} ± {np.sqrt(1e-2 * shape_scale):.4f}")
     print(f"Sphere radius:      {1.0 / np.sqrt(rand_sphere_size / shape_scale):.4f}")
     print()
@@ -497,7 +484,7 @@ def main():
     camera_rays = (pixel_list - K[:, 2]) / np.diag(K)
     camera_rays[:, -1] = -1
     cameras_list = []
-    for tran, quat in zip(trans, rand_quats):
+    for tran, quat in zip(trans, rand_quats, strict=False):
         R = transforms3d.quaternions.quat2mat(quat)
         camera_rays2 = camera_rays @ R
         t = np.tile(tran[None], (camera_rays2.shape[0], 1))
@@ -530,7 +517,7 @@ def main():
     alpha_results_rand_depth = []
     forward_times = []
 
-    for i, camera_rays in enumerate(cameras_list):
+    for camera_rays in cameras_list:
         t_start = time.perf_counter()
         est_depth, est_alpha, est_norm, est_w = render_jit(
             rand_mean, rand_prec, rand_weight_log, camera_rays, beta2 / shape_scale, beta3
@@ -606,9 +593,9 @@ def main():
 
     Niter_epoch = int(np.ceil(len(all_cameras) / batch_size))
 
-    print(f"Optimizer:          Adam with adaptive learning rate")
+    print("Optimizer:          Adam with adaptive learning rate")
     print(f"Initial LR:         {initial_lr}")
-    print(f"Loss function:      Binary cross-entropy (silhouette)")
+    print("Loss function:      Binary cross-entropy (silhouette)")
     print(f"Epochs:             {Nepochs}")
     print(f"Batch size:         {batch_size} rays")
     print(f"Iterations/epoch:   {Niter_epoch}")
@@ -865,7 +852,7 @@ def main():
     print("✨ RECONSTRUCTION COMPLETE")
     print("=" * 80)
     print()
-    print(f"📈 Final Statistics:")
+    print("📈 Final Statistics:")
     print(f"   Model:              {NUM_MIXTURE} Gaussian mixtures ({NUM_MIXTURE * 13} parameters)")
     print(f"   Training views:     {num_views}")
     print(f"   Image resolution:   {image_size[1]}×{image_size[0]} pixels")
