@@ -19,7 +19,8 @@ dependencies = [
     "transforms3d>=0.4.2,<0.5",
     "trimesh>=4.9.0,<5",
     "pyrender @ git+https://github.com/jasper-tms/pyrender.git",
-    "scipy>=1.16.3,<2", "pyyaml>=6.0.3,<7",
+    "scipy>=1.16.3,<2",
+    "pyyaml>=6.0.3,<7",
 ]
 
 [tool.pixi.workspace]
@@ -38,6 +39,7 @@ ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
 gtest = ">=1.17.0,<2"
+mesalib = ">=25.0.5,<26"
 
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
@@ -64,4 +66,4 @@ addopts = ["--import-mode=importlib", "--doctest-modules"]
 testpaths = ["tests", "src"]
 
 [tool.pixi.activation.env]
-PYOPENGL_PLATFORM = "egl"
+PYOPENGL_PLATFORM = "osmesa"
