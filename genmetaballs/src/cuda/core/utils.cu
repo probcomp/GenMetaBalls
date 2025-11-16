@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#include "utils.h"
+#include "utils.cuh"
 
 void cuda_check(cudaError_t code, const char *file, int line) {
     if (code != cudaSuccess) {

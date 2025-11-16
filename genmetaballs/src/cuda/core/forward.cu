@@ -23,29 +23,34 @@ get_pixel_coords_and_rays(const dim3 thread_idx, const dim3 block_idx)
     return res;
 }
 
+
 template<class Getter, class Intersector, class Blender, class Confidence>
 __global__
 render_kernel(
-    const typename Getter::Getter &fmb_getter,
-    const Intrinsics &intr,
-    const Pose &extr,
+    const Getter fmb_getter,
+    const Blender blender,
+    Confidence const *confidence,
+    Intrinsics const *intr,
+    Pose const *extr,
     Image *img
 ) {
     // TODO how to find the relevant chunk of computation from threadIdx,
     // blockIdx, etc
-    auto pixel_coords_and_rays = get_pixel_coords_and_rays(threadIdx, blockIdx, ...);
+    auto pixel_coords_and_rays = get_pixel_coords_and_rays(
+        threadIdx, blockIdx, blockDim, gridDim, intr, extr
+    );
 
     for(const auto &[pixel_coords, ray]: pixel_coords_and_rays) {
-        float w0 = 0.0f, tf = 0.0f, confidence = 0.0f;
-        for(const auto &fmb: fmb_getter.get_metaballs(ray)) {
-             t = Intersector::intersect(fmb, ray);
-             w = Blender::blend(t, fmb, ray);
-             confidence = Confidence::update(confidence, t, w);
+        float w0 = 0.0f, tf = 0.0f, sumexpd = 0.0f;
+        for(const auto &fmb: fmb_getter->get_metaballs(ray)) {
+             const auto &[t, d] = Intersector::intersect(fmb, ray);
+             w = blender->blend(t, d, fmb, ray);
+             sumexpd += exp(d);
              tf += t;
              w0 += w;
         }
-        img.confidence.at(pixel_coords) = confidence;
-        img.depth.at(pixel_coords) = tf / w0;
+        img->confidence.at(pixel_coords) = confidence->get_confidence(sumexpd);
+        img->depth.at(pixel_coords) = tf / w0;
     }
 }
 
