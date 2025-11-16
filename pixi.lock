@@ -1184,7 +1184,7 @@ packages:
 - pypi: ./
   name: genmetaballs
   version: 0.0.1
-  sha256: 26221218d66c402421decc9e58527a501efb48874693ee046ce950bb972b500d
+  sha256: 126cf8632a1b1b1d420ec7aba40c4914995cec878ec28ee740ae6ba2d219fbc1
   requires_dist:
   - numpy
   requires_python: '>=3.13'

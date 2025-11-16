@@ -25,11 +25,7 @@ The `dev-setup` task sets up [pre-commit](https://pre-commit.com/) git hooks:
 - **Pre-commit**: Formats and lints code before each commit
 - **Pre-push**: Runs all tests before pushes
 
-Run the hooks manually if needed:
-```bash
-pixi run pre-commit-run        # Run formatting/linting checks
-pixi run pre-commit-run-push   # Run all tests
-```
+The `dev-setup` task also generates `compile_commands.json` (needed for accurate C++/CUDA linting).
 
 
 ## Testing
@@ -60,34 +56,21 @@ pixi run test
 
 ## Formatting & Linting
 
-### Formatting
+All commands work on both C++/CUDA and Python files automatically.
 
-Format all files (C++/CUDA + Python):
+Format all files:
 ```bash
 pixi run format
 ```
-
-Check formatting without modifying files:
-```bash
-pixi run format-check
-```
-
-### Linting
 
 Lint all files:
 ```bash
 pixi run lint
 ```
 
-Auto-fix linting issues:
+Auto-fix linting issues and format files:
 ```bash
-pixi run lint-fix
+pixi run fix
 ```
 
-**Language-specific commands:**
-- `format-cpp`, `format-python` - Format specific language
-- `format-check-cpp`, `format-check-python` - Check formatting for specific language
-- `lint-cpp`, `lint-python` - Lint specific language
-- `lint-cpp-fix`, `lint-python-fix` - Auto-fix linting issues for specific language
-- `lint-full` - C++/CUDA linting with compile_commands.json (more accurate)
-- `lint-full-fix` - Auto-fix C++/CUDA issues using compile_commands.json
+These commands are automatically run by the pre-commit hooks when you commit code.

@@ -14,15 +14,6 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-      # Check formatting (C++/CUDA + Python)
-      - id: format-check
-        name: Check formatting
-        entry: pixi run format-check
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
-
       # Lint files (C++/CUDA + Python)
       - id: lint
         name: Lint files
