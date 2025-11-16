@@ -39,15 +39,24 @@ ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
 gtest = ">=1.17.0,<2"
+clang-tools = ">=18,<20"  # Includes clang-format and clang-tidy
 mesalib = ">=25.0.5,<26"
 
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
+ruff = ">=0.8.0"
+pre-commit = ">=3.0.0"
 
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
 pytest = "pytest"
 test = { depends-on = ["ctest", "pytest"] }
+# Simple lint/format/fix commands (C++/CUDA + Python)
+format = { cmd = "scripts/format.sh" }
+lint = { cmd = "scripts/lint.sh" }
+fix = { cmd = "scripts/fix.sh" }
+# Dev setup: install git hooks
+dev-setup = "pre-commit install && pre-commit install --hook-type pre-push"
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }
@@ -65,5 +74,32 @@ dev = ["pytest"]
 addopts = ["--import-mode=importlib", "--doctest-modules"]
 testpaths = ["tests", "src"]
 
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["genmetaballs"]
 [tool.pixi.activation.env]
 PYOPENGL_PLATFORM = "osmesa"

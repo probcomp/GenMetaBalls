@@ -1,0 +1,35 @@
+# Pre-commit hooks configuration for GenMetaBalls
+# See https://pre-commit.com for more information
+
+repos:
+  # Local hooks for custom formatting and linting
+  - repo: local
+    hooks:
+      # Format files (C++/CUDA + Python)
+      - id: format
+        name: Format files
+        entry: pixi run format
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Lint files (C++/CUDA + Python)
+      - id: lint
+        name: Lint files
+        entry: pixi run lint
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Run tests (pre-push hook)
+      - id: test
+        name: Run all tests
+        entry: scripts/test-quiet.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+        verbose: true
+
