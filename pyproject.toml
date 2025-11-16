@@ -11,7 +11,17 @@ authors = [
 ]
 version = "0.0.1"
 requires-python = ">=3.13"
-dependencies = ["numpy"]
+dependencies = [
+    "numpy>=2.3.4,<3",
+    "jax[cuda12]>=0.8.0,<0.9",
+    "matplotlib>=3.10.7,<4",
+    "tqdm>=4.67.1,<5",
+    "transforms3d>=0.4.2,<0.5",
+    "trimesh>=4.9.0,<5",
+    "pyrender @ git+https://github.com/jasper-tms/pyrender.git",
+    "scipy>=1.16.3,<2",
+    "pyyaml>=6.0.3,<7",
+]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -30,6 +40,7 @@ scikit-build-core = "*"
 nanobind = "*"
 gtest = ">=1.17.0,<2"
 clang-tools = ">=18,<20"  # Includes clang-format and clang-tidy
+mesalib = ">=25.0.5,<26"
 
 [tool.pixi.pypi-dependencies]
 genmetaballs = { path = ".", editable = true }
@@ -90,3 +101,5 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["genmetaballs"]
+[tool.pixi.activation.env]
+PYOPENGL_PLATFORM = "osmesa"
