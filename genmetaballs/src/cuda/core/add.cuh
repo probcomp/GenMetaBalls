@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <vector>
 
-#include "utils.h"
+#include "utils.cuh"
 
 __global__ void add_kernel(
     float const *a,

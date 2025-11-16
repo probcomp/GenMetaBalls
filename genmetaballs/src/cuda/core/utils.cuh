@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <cuda_runtime.h>
 
 #define CUDA_CHECK(x) \
@@ -20,21 +21,24 @@ private:
 public:
 
     __host__ __device__ __forceinline__
-    T &at(const uint32_t i, const uint32_t j)
+    container_t &at(const uint32_t i, const uint32_t j)
     {
-        return data_[i * width + j];
+        return data_;
+        //return data_[i * width + j];
     }
 
     __host__ __device__ __forceinline__
-    const T &at(const uint32_t i, const uint32_t j) const
+    const container_t &at(const uint32_t i, const uint32_t j) const
     {
-        return data_[i * width + j];
+        return data_;
+        //return data_[i * width + j];
     }
 
     __host__ __device__ 
     constexpr uint32_t size() const
     {
-        return width * height;
+        return 0;
+        //return width * height;
     }
 };
 

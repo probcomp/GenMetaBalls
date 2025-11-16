@@ -3,7 +3,9 @@
 #include <cuda_runtime.h>
 
 
-typedef Vec3D = float3;
+using Vec3D = float3;
+
+Vec3D operator+(const Vec3D a, const Vec3D b);
 
 
 class Rotation {
