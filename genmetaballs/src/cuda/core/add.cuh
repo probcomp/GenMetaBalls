@@ -4,22 +4,14 @@
 
 #include "utils.cuh"
 
-__global__ void add_kernel(
-    float const *a,
-    float const *b,
-    const uint32_t n,
-    float *sum
-) {
+__global__ void add_kernel(float const* a, float const* b, const uint32_t n, float* sum) {
     const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x;
-    if(i < n)
+    if (i < n)
         sum[i] = a[i] + b[i];
 }
 
-template<uint32_t grid_dim, uint32_t block_dim>
-std::vector<float> gpu_add(
-    const std::vector<float> &a_vec,
-    const std::vector<float> &b_vec
-) {
+template <uint32_t grid_dim, uint32_t block_dim>
+std::vector<float> gpu_add(const std::vector<float>& a_vec, const std::vector<float>& b_vec) {
     const uint32_t n = a_vec.size();
     const uint32_t nbytes = n * sizeof(float);
     float *a, *b, *sum;

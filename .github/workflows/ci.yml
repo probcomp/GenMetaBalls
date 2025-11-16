@@ -1,0 +1,48 @@
+name: Format and Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  format-and-lint:
+    name: Format and Lint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install pixi
+        uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: "latest"
+          cache: true  # Cache pixi installation
+      
+      - name: Cache pixi environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pixi
+            .pixi
+          key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pixi-
+      
+      - name: Install dependencies
+        run: pixi install
+      
+      - name: Check formatting
+        run: |
+          pixi run format
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Files were not properly formatted. Run 'pixi run format' to fix."
+            git diff
+            exit 1
+          fi
+      
+      - name: Lint code
+        run: pixi run lint
+

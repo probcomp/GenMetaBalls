@@ -1,5 +1,4 @@
 #include <cstdint>
-
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/vector.h>
 
@@ -30,5 +29,4 @@ NB_MODULE(_genmetaballs_bindings, m) {
             return "Vec3D(" + std::to_string(v.x) + ", " +
                    std::to_string(v.y) + ", " + std::to_string(v.z) + ")";
         });
-
 }
