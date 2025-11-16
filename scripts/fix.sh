@@ -12,31 +12,12 @@ if [ -z "$CPP_FILES" ]; then
     echo "✓ No CUDA/C++ files found"
     CPP_EXIT=0
 else
-    USE_COMPILE_COMMANDS=false
-    
-    # Try to use compile_commands.json if available
-    if [ -f "build/compile_commands.json" ]; then
-        USE_COMPILE_COMMANDS=true
-    else
-        echo "⚠️  compile_commands.json not found. Running 'pixi run compile-commands' first..."
-        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null 2>&1 || true
-        if [ -f "build/compile_commands.json" ]; then
-            USE_COMPILE_COMMANDS=true
-        fi
-    fi
-    
     echo "🔧 Auto-fixing linting issues in CUDA/C++ files..."
     FIXED=0
     
     while IFS= read -r file; do
         if [ -f "$file" ]; then
-            if [ "$USE_COMPILE_COMMANDS" = true ]; then
-                # Use compile_commands.json for better analysis
-                OUTPUT=$(clang-tidy --fix "$file" 2>&1 || true)
-            else
-                # Use manual flags
-                OUTPUT=$(clang-tidy --fix "$file" -- -Igenmetaballs/src/cuda -std=c++20 2>&1 || true)
-            fi
+            OUTPUT=$(clang-tidy --fix "$file" -- -Igenmetaballs/src/cuda -std=c++20 2>&1 || true)
             
             # Check if any fixes were applied (clang-tidy modifies files in place)
             echo "  ✓ Processed: $file"

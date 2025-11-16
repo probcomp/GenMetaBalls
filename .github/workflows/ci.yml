@@ -2,6 +2,7 @@ name: Format and Lint
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]  # Run when PR is opened, updated, or reopened
     branches:
       - main
       - master
@@ -35,7 +36,13 @@ jobs:
         run: pixi install
       
       - name: Check formatting
-        run: pixi run format-check
+        run: |
+          pixi run format
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Files were not properly formatted. Run 'pixi run format' to fix."
+            git diff
+            exit 1
+          fi
       
       - name: Lint code
         run: pixi run lint

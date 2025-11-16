@@ -12,18 +12,6 @@ if [ -z "$CPP_FILES" ]; then
     echo "✓ No CUDA/C++ files found"
     CPP_EXIT=0
 else
-    USE_COMPILE_COMMANDS=true
-    
-    # Try to use compile_commands.json if available (faster and more accurate)
-    if [ ! -f "build/compile_commands.json" ]; then
-        echo "⚠️  compile_commands.json not found. Generating it..."
-        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON >/dev/null 2>&1 || true
-        if [ ! -f "build/compile_commands.json" ]; then
-            echo "⚠️  Could not generate compile_commands.json, falling back to basic mode"
-            USE_COMPILE_COMMANDS=false
-        fi
-    fi
-    
     echo "🔍 Linting CUDA/C++ files..."
     HAS_ISSUES=0
     CLEAN_FILES=0
@@ -34,25 +22,19 @@ else
     trap "rm -rf $TMPDIR" EXIT
     
     # Export variables for parallel execution
-    export USE_COMPILE_COMMANDS
     export TMPDIR
     
     # Run clang-tidy in parallel (use number of CPU cores)
     NPROC=$(nproc 2>/dev/null || echo 4)
     echo "$CPP_FILES" | xargs -P "$NPROC" -I {} sh -c '
         file="$1"
-        use_compile_commands="$2"
-        tmpdir="$3"
+        tmpdir="$2"
         
         if [ ! -f "$file" ]; then
             exit 0
         fi
         
-        if [ "$use_compile_commands" = "true" ]; then
-            OUTPUT=$(clang-tidy "$file" 2>&1 || true)
-        else
-            OUTPUT=$(clang-tidy "$file" -- -Igenmetaballs/src/cuda -std=c++20 2>&1 || true)
-        fi
+        OUTPUT=$(clang-tidy "$file" -- -Igenmetaballs/src/cuda -std=c++20 2>&1 || true)
         
         FILE_BASENAME=$(basename "$file")
         ISSUES=$(echo "$OUTPUT" | grep -E "(^|/)$FILE_BASENAME:" | \
@@ -75,7 +57,7 @@ else
             echo "ISSUES:$file" > "$tmpfile"
             echo "$ISSUES" >> "$tmpfile"
         fi
-    ' _ {} "$USE_COMPILE_COMMANDS" "$TMPDIR"
+    ' _ {} "$TMPDIR"
     
     # Process results in order
     OLD_IFS="$IFS"

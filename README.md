@@ -25,7 +25,6 @@ The `dev-setup` task sets up [pre-commit](https://pre-commit.com/) git hooks:
 - **Pre-commit**: Formats and lints code before each commit
 - **Pre-push**: Runs all tests before pushes
 
-The `dev-setup` task also generates `compile_commands.json` (needed for accurate C++/CUDA linting).
 
 
 ## Testing

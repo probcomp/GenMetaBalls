@@ -40,13 +40,12 @@ pre-commit = ">=3.0.0"
 ctest = "ctest --test-dir build"
 pytest = "pytest"
 test = { depends-on = ["ctest", "pytest"] }
-compile-commands = "cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 # Simple lint/format/fix commands (C++/CUDA + Python)
 format = { cmd = "scripts/format.sh" }
 lint = { cmd = "scripts/lint.sh" }
 fix = { cmd = "scripts/fix.sh" }
-# Dev setup: install git hooks and generate compile_commands.json
-dev-setup = { depends-on = ["compile-commands"], cmd = "pre-commit install && pre-commit install --hook-type pre-push" }
+# Dev setup: install git hooks
+dev-setup = "pre-commit install && pre-commit install --hook-type pre-push"
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }
