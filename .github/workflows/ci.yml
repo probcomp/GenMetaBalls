@@ -21,18 +21,15 @@ jobs:
           pixi-version: "latest"
           cache: true  # Cache pixi installation
       
-      - name: Cache pixi environment
+      # pixi is too large to cache (contains CUDA toolkit)
+      # so we cache pip wheels instead
+      - name: Cache pip wheels
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.pixi
-            .pixi
-          key: ${{ runner.os }}-pixi-${{ hashFiles('pixi.lock') }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pixi.lock') }}
           restore-keys: |
-            ${{ runner.os }}-pixi-
-      
-      - name: Install dependencies
-        run: pixi install
+            ${{ runner.os }}-pip-
       
       - name: Check formatting
         run: |
