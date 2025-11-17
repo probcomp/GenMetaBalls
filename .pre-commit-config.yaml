@@ -26,8 +26,8 @@ repos:
       # Run tests (pre-push hook)
       - id: test
         name: Run all tests
-        # build the latest c++/cuda code and run tests
-        entry: bash -c "pixi run build && pixi run test"
+        # reinstall genmetaballs to rebuild C++/CUDA code, then run tests
+        entry: bash -c "pixi reinstall genmetaballs && pixi run test"
         language: system
         pass_filenames: false
         always_run: true

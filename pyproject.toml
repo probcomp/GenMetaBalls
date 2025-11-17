@@ -57,8 +57,6 @@ lint = { cmd = "scripts/lint.sh" }
 fix = { cmd = "scripts/fix.sh" }
 # Dev setup: install git hooks
 dev-setup = "pre-commit install && pre-commit install --hook-type pre-push"
-build = "cmake -S . -B build && cmake --build build"
-
 
 [tool.pixi.environments]
 default = { solve-group = "default", features = ["dev"] }
