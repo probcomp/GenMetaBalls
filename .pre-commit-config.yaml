@@ -26,7 +26,8 @@ repos:
       # Run tests (pre-push hook)
       - id: test
         name: Run all tests
-        entry: pixi run test
+        # build the latest c++/cuda code and run tests
+        entry: bash -c "pixi run build && pixi run test"
         language: system
         pass_filenames: false
         always_run: true
