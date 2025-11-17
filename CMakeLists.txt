@@ -15,8 +15,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(genmetaballs_core
   genmetaballs/src/cuda/core/utils.cu
-  genmetaballs/src/cuda/core/utils.h
+  genmetaballs/src/cuda/core/utils.cuh
   genmetaballs/src/cuda/core/add.cuh
+  genmetaballs/src/cuda/core/geometry.cuh
+  genmetaballs/src/cuda/core/geometry.cu
 )
 
 # Set include directories for the core library
