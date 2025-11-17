@@ -13,6 +13,13 @@ def test_vec3d_smoke() -> None:
     _gmbb.Vec3D(0, 0, 0)
 
 
+def test_vec3d_repr_returns_valid_string() -> None:
+    v = _gmbb.Vec3D(1.0, 2.0, 3.0)
+    repr_str = repr(v)
+    assert isinstance(repr_str, str)
+    assert repr_str == "Vec3D(1.0, 2.0, 3.0)"
+
+
 def test_vec3d_add(rng: np.random.Generator) -> None:
     _a, _b = rng.uniform(size=3), rng.uniform(size=3)
     a, b = _gmbb.Vec3D(*_a), _gmbb.Vec3D(*_b)

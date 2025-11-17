@@ -23,7 +23,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("__add__", &operator+)
         .def("__sub__", &operator-)
         .def("__repr__", [](const Vec3D& v) {
-            return "Vec3D(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ", " +
-                   std::to_string(v.z) + ")";
+            nb::str s = nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z);
+            return s;
         });
 }
