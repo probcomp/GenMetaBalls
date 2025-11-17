@@ -26,7 +26,7 @@ repos:
       # Run tests (pre-push hook)
       - id: test
         name: Run all tests
-        entry: scripts/test-quiet.sh
+        entry: pixi run test
         language: system
         pass_filenames: false
         always_run: true
