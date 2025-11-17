@@ -21,16 +21,6 @@ jobs:
           pixi-version: "latest"
           cache: false  # pixi is too large to cache (contains CUDA toolkit)
       
-      # pixi is too large to cache (contains CUDA toolkit)
-      # so we cache pip wheels instead
-      - name: Cache pip wheels
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pixi.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
       - name: Check formatting
         run: |
           pixi run format
