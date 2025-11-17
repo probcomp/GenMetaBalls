@@ -19,7 +19,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.0
         with:
           pixi-version: "latest"
-          cache: true  # Cache pixi installation
+          cache: false  # pixi is too large to cache (contains CUDA toolkit)
       
       # pixi is too large to cache (contains CUDA toolkit)
       # so we cache pip wheels instead
