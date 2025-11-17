@@ -6,8 +6,7 @@ constexpr THREADS_PER_BLOCK dim3(10);
 
 namespace FMB {
 
-__device__ __host__ std::vector<std::pair<PixelCoord, Ray>>
-get_pixel_coords_and_rays(
+__device__ __host__ std::vector<std::pair<PixelCoord, Ray>> get_pixel_coords_and_rays(
     const dim3 thread_idx, const dim3 block_idx) {
     std::vector<std::pair<PixelCoord, Ray>> res;
 
