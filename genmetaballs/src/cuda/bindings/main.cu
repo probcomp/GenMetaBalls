@@ -10,8 +10,9 @@ constexpr uint32_t BLOCK_DIM = 1024;
 
 namespace nb = nanobind;
 
-// Forward declaration - will be defined in confidence.cu
+// Forward declarations - will be defined in respective .cu files
 void init_confidence_submodule(nb::module_& m);
+void init_math_utils_submodule(nb::module_& m);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -34,4 +35,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
     // Create confidence submodule
     nb::module_ confidence_submodule = m.def_submodule("confidence");
     init_confidence_submodule(confidence_submodule);
+
+    // Create math_utils submodule
+    nb::module_ math_utils_submodule = m.def_submodule("math_utils");
+    init_math_utils_submodule(math_utils_submodule);
 }

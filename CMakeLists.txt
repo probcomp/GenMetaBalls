@@ -19,6 +19,7 @@ add_library(genmetaballs_core
   genmetaballs/src/cuda/core/add.cuh
   genmetaballs/src/cuda/core/geometry.cuh
   genmetaballs/src/cuda/core/geometry.cu
+  genmetaballs/src/cuda/core/math_utils.cuh
 )
 
 # Set include directories for the core library
@@ -50,6 +51,7 @@ nanobind_add_module(
   STABLE_ABI
   genmetaballs/src/cuda/bindings/main.cu
   genmetaballs/src/cuda/bindings/confidence.cu
+  genmetaballs/src/cuda/bindings/math_utils.cu
 )
 
 # Link the core library to the bindings module
