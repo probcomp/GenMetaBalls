@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from genmetaballs.core import ThreeParameterConfidence, gpu_get_confidence
+from genmetaballs.core import (
+    FiveParameterConfidence,
+    ThreeParameterConfidence,
+    ZeroParameterConfidence,
+    gpu_get_confidence,
+)
 
 
 def ground_truth_five_parameter_confidence_cpu(
@@ -28,21 +33,72 @@ NUM_N_VALUES_PER_TEST = 5
 MASTER_SEED = 0
 
 
+# Test data for different confidence types
+CONFIDENCE_TEST_CASES = [
+    # (confidence_class, confidence_kwargs, ground_truth_func, ground_truth_kwargs)
+    ("three_param", {}, ground_truth_three_parameter_confidence_cpu, {}),
+    ("zero_param", {}, ground_truth_zero_parameter_confidence_cpu, {}),
+    (
+        "five_param",
+        {"beta4": 0.5, "beta5": -1.0},
+        ground_truth_five_parameter_confidence_cpu,
+        {"beta4": 0.5, "beta5": -1.0},
+    ),
+    (
+        "five_param",
+        {"beta4": 1.0, "beta5": 0.0},
+        ground_truth_five_parameter_confidence_cpu,
+        {"beta4": 1.0, "beta5": 0.0},
+    ),
+    (
+        "five_param",
+        {"beta4": -0.5, "beta5": 2.0},
+        ground_truth_five_parameter_confidence_cpu,
+        {"beta4": -0.5, "beta5": 2.0},
+    ),
+]
+
+
+def create_confidence_instance(conf_type: str, kwargs: dict):
+    """Helper function to dispatch the appropriate confidence instance."""
+    if conf_type == "three_param":
+        return ThreeParameterConfidence()
+    elif conf_type == "zero_param":
+        return ZeroParameterConfidence()
+    elif conf_type == "five_param":
+        return FiveParameterConfidence(kwargs["beta4"], kwargs["beta5"])
+    else:
+        raise ValueError(f"Unknown confidence type: {conf_type}")
+
+
 @pytest.mark.parametrize(
     "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
 )
-def test_three_parameter_confidence_single_value_cpu(rng_seed: int) -> None:
-    """Test that the three parameter confidence can be computed correctly on the CPU for a single value."""
+@pytest.mark.parametrize(
+    "conf_type, conf_kwargs, ground_truth_func, gt_kwargs", CONFIDENCE_TEST_CASES
+)
+def test_confidence_single_value_cpu(
+    rng_seed: int, conf_type: str, conf_kwargs: dict, ground_truth_func, gt_kwargs: dict
+) -> None:
+    """Test that confidence can be computed correctly on the CPU for a single value across all confidence types."""
     rng = np.random.default_rng(rng_seed)
-    confidence = ThreeParameterConfidence()
+    confidence = create_confidence_instance(conf_type, conf_kwargs)
+
     # range of sumexpd is [tiny (smallest f32 value above 0), max (largest f32 value)] since it is the sum of exp(d) for all metaballs
     sumexpd = (
         rng.uniform(low=np.finfo(np.float32).tiny, high=np.finfo(np.float32).max, size=1)
         .astype(np.float32)
         .item()
     )
-    expected = ground_truth_three_parameter_confidence_cpu(sumexpd)
+
+    # Compute expected using appropriate ground truth function
+    if conf_type == "five_param":
+        expected = ground_truth_func(gt_kwargs["beta4"], gt_kwargs["beta5"], sumexpd)
+    else:
+        expected = ground_truth_func(sumexpd)
+
     actual = confidence.get_confidence(sumexpd)
+
     # check that the actual and expected values are close
     assert np.isclose(actual, expected, rtol=1e-6)
     # check that all confidence values are between 0 and 1 inclusive
@@ -58,18 +114,26 @@ def test_three_parameter_confidence_single_value_cpu(rng_seed: int) -> None:
 @pytest.mark.parametrize(
     "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
 )
-def test_three_parameter_confidence_multiple_values_gpu(rng_seed: int, N: int) -> None:
-    """Test the three parameter confidence computed on GPU for multiple values and different N."""
+@pytest.mark.parametrize(
+    "conf_type, conf_kwargs, ground_truth_func, gt_kwargs", CONFIDENCE_TEST_CASES
+)
+def test_confidence_multiple_values_gpu(
+    rng_seed: int, N: int, conf_type: str, conf_kwargs: dict, ground_truth_func, gt_kwargs: dict
+) -> None:
+    """Test confidence computed on GPU for multiple values and different N across all confidence types."""
     rng = np.random.default_rng(rng_seed)
-    confidence = ThreeParameterConfidence()
+    confidence = create_confidence_instance(conf_type, conf_kwargs)
 
     # Generate random sumexpd vector values, seeded as above
     sumexpd_vec = rng.uniform(
         low=np.finfo(np.float32).tiny, high=np.finfo(np.float32).max, size=N
     ).astype(np.float32)
 
-    # Compute expected results using numpy
-    expected = ground_truth_three_parameter_confidence_cpu(sumexpd_vec)
+    # Compute expected results using appropriate ground truth function
+    if conf_type == "five_param":
+        expected = ground_truth_func(gt_kwargs["beta4"], gt_kwargs["beta5"], sumexpd_vec)
+    else:
+        expected = ground_truth_func(sumexpd_vec)
 
     # Compute actual results using GPU
     actual = np.array(gpu_get_confidence(sumexpd_vec.tolist(), confidence))
