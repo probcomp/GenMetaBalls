@@ -30,7 +30,8 @@ struct ThreeParameterConfidence {
 // https://github.com/leonidk/fmb-plus/blob/235a078a402968554186a2ca752fb13afffb84f8/zpfm_render.py#L59
 using ZeroParameterConfidence = ThreeParameterConfidence;
 
-// Generic CUDA kernel for computing confidence values
+// CUDA kernel for computing confidence values
+// Template kernel definition - safe in header since each instantiation is a different function
 template <typename Confidence>
 __global__ void confidence_kernel(const float* sumexpd, float* confidences, uint32_t n,
                                   Confidence confidence) {

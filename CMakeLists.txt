@@ -21,6 +21,7 @@ add_library(genmetaballs_core
   genmetaballs/src/cuda/core/geometry.cu
   genmetaballs/src/cuda/core/math_utils.cuh
   genmetaballs/src/cuda/core/math_utils.cu
+  genmetaballs/src/cuda/core/confidence.cuh
 )
 
 # Set include directories for the core library
