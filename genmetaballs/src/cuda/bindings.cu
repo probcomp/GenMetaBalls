@@ -15,18 +15,13 @@ namespace nb = nanobind;
 
 // Initialize the confidence submodule (called from main module)
 void init_confidence_submodule(nb::module_& m) {
-    // Note: ZeroParameterConfidence is a type alias for ThreeParameterConfidence,
-    // so we only need to register ThreeParameterConfidence to the bindings.
-    nb::class_<ThreeParameterConfidence>(m, "ThreeParameterConfidence")
+    nb::class_<ZeroParameterConfidence>(m, "ZeroParameterConfidence")
         .def(nb::init<>())
-        .def("get_confidence", &ThreeParameterConfidence::get_confidence);
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence);
 
-    // I am exposing ZeroParameterConfidence as an alias in Python too
-    m.attr("ZeroParameterConfidence") = m.attr("ThreeParameterConfidence");
-
-    nb::class_<FiveParameterConfidence>(m, "FiveParameterConfidence")
+    nb::class_<TwoParameterConfidence>(m, "TwoParameterConfidence")
         .def(nb::init<float, float>())
-        .def("get_confidence", &FiveParameterConfidence::get_confidence);
+        .def("get_confidence", &TwoParameterConfidence::get_confidence);
 }
 
 // Initialize the utils submodule (called from main module)

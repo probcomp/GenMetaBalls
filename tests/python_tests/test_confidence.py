@@ -3,29 +3,24 @@ import pytest
 from scipy.special import expit
 
 from genmetaballs.core import (
-    FiveParameterConfidence,
-    ThreeParameterConfidence,
+    TwoParameterConfidence,
     ZeroParameterConfidence,
 )
 
 
-def ground_truth_five_parameter_confidence(
+def ground_truth_two_parameter_confidence(
     beta4: float, beta5: float, sumexpd: float | np.ndarray
 ) -> float | np.ndarray:
     """Compute the five parameter confidence for a single value or an array of values using numpy."""
     return expit((beta4 * sumexpd) + beta5)
 
 
-def ground_truth_three_parameter_confidence(
+def ground_truth_zero_parameter_confidence(
     sumexpd: float | np.ndarray,
 ) -> float | np.ndarray:
     """Compute the three parameter confidence for a single value or an array of values using numpy."""
     return 1.0 - np.exp(-sumexpd)
 
-
-# According to the FMB+ code, the zero parameter confidence is the same as the three parameter confidence.
-# Look at https://github.com/leonidk/fmb-plus/blob/235a078a402968554186a2ca752fb13afffb84f8/zpfm_render.py#L59
-ground_truth_zero_parameter_confidence = ground_truth_three_parameter_confidence
 
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
@@ -35,24 +30,23 @@ MASTER_SEED = 0
 # Test data for different confidence types
 CONFIDENCE_TEST_CASES = [
     # (confidence_class, confidence_kwargs, ground_truth_func, ground_truth_kwargs)
-    ("three_param", {}, ground_truth_three_parameter_confidence, {}),
     ("zero_param", {}, ground_truth_zero_parameter_confidence, {}),
     (
-        "five_param",
+        "two_param",
         {"beta4": 0.5, "beta5": -1.0},
-        ground_truth_five_parameter_confidence,
+        ground_truth_two_parameter_confidence,
         {"beta4": 0.5, "beta5": -1.0},
     ),
     (
-        "five_param",
+        "two_param",
         {"beta4": 1.0, "beta5": 0.0},
-        ground_truth_five_parameter_confidence,
+        ground_truth_two_parameter_confidence,
         {"beta4": 1.0, "beta5": 0.0},
     ),
     (
-        "five_param",
+        "two_param",
         {"beta4": -0.5, "beta5": 2.0},
-        ground_truth_five_parameter_confidence,
+        ground_truth_two_parameter_confidence,
         {"beta4": -0.5, "beta5": 2.0},
     ),
 ]
@@ -60,12 +54,10 @@ CONFIDENCE_TEST_CASES = [
 
 def create_confidence_instance(conf_type: str, kwargs: dict):
     """Helper function to dispatch the appropriate confidence instance."""
-    if conf_type == "three_param":
-        return ThreeParameterConfidence()
+    if conf_type == "two_param":
+        return TwoParameterConfidence(kwargs["beta4"], kwargs["beta5"])
     elif conf_type == "zero_param":
         return ZeroParameterConfidence()
-    elif conf_type == "five_param":
-        return FiveParameterConfidence(kwargs["beta4"], kwargs["beta5"])
     else:
         raise ValueError(f"Unknown confidence type: {conf_type}")
 
@@ -91,7 +83,7 @@ def test_confidence_single_value(
     )
 
     # Compute expected using appropriate ground truth function
-    if conf_type == "five_param":
+    if conf_type == "two_param":
         expected = ground_truth_func(gt_kwargs["beta4"], gt_kwargs["beta5"], sumexpd)
     else:
         expected = ground_truth_func(sumexpd)
