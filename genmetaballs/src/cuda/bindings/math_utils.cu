@@ -11,13 +11,9 @@ namespace nb = nanobind;
 // Initialize the math_utils submodule (called from main.cu)
 void init_math_utils_submodule(nb::module_& m) {
     // Expose sigmoid function for single values
-    m.def(
-        "sigmoid", [](float x) { return sigmoid(x); }, nb::arg("x"),
-        "Compute the sigmoid function: 1 / (1 + exp(-x))");
+    m.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
     // GPU version -- accepts Python list, returns vector<float>
-    m.def(
-        "sigmoid_vector",
-        [&](const std::vector<float>& x) { return gpu_sigmoid<GRID_DIM, BLOCK_DIM, float>(x); },
-        nb::arg("x"), "Compute the sigmoid function element-wise for a vector on GPU");
+    m.def("sigmoid_vector", gpu_sigmoid<GRID_DIM, BLOCK_DIM>, nb::arg("x"),
+          "Compute the sigmoid function element-wise for a vector on GPU");
 }
