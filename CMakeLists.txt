@@ -48,7 +48,8 @@ nanobind_add_module(
   _genmetaballs_bindings
   NB_STATIC
   STABLE_ABI
-  genmetaballs/src/cuda/bindings.cu
+  genmetaballs/src/cuda/bindings/main.cu
+  genmetaballs/src/cuda/bindings/confidence.cu
 )
 
 # Link the core library to the bindings module
