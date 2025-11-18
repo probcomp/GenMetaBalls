@@ -8,7 +8,7 @@ struct ThreeParameterBlender {
     float beta2;
     float eta;
 
-    __host__ __device__ __forceinline__ // TODO inline?
+    CUDA_CALLABLE __forceinline__ // TODO inline?
         float
         blend(float t, float d, const FMB& fmb, const Ray& ray) const;
 };

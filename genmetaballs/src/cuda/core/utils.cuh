@@ -13,7 +13,7 @@
 
 void cuda_check(cudaError_t code, const char* file, int line);
 
-__host__ __device__ __forceinline__ float sigmoid(float x) {
+CUDA_CALLABLE __forceinline__ float sigmoid(float x) {
     if (isnan(x)) {
         return x;
     }
@@ -28,18 +28,17 @@ private:
     container_t data_;
 
 public:
-    __host__ __device__ __forceinline__ container_t& at(const uint32_t i, const uint32_t j) {
+    CUDA_CALLABLE __forceinline__ container_t& at(const uint32_t i, const uint32_t j) {
         return data_;
         // return data_[i * width + j];
     }
 
-    __host__ __device__ __forceinline__ const container_t& at(const uint32_t i,
-                                                              const uint32_t j) const {
+    CUDA_CALLABLE __forceinline__ const container_t& at(const uint32_t i, const uint32_t j) const {
         return data_;
         // return data_[i * width + j];
     }
 
-    __host__ __device__ constexpr uint32_t size() const {
+    CUDA_CALLABLE constexpr uint32_t size() const {
         return 0;
         // return width * height;
     }
