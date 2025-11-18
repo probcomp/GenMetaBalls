@@ -1,0 +1,2 @@
+# prevent line-based 3-way merge on pixi.lock
+pixi.lock merge=binary linguist-language=YAML linguist-generated=true
