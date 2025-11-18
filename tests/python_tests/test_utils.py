@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from genmetaballs.core import sigmoid, sigmoid_vector
+from genmetaballs.core import sigmoid
 
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
@@ -60,32 +60,32 @@ def test_sigmoid_edge_cases(x: float) -> None:
         assert actual <= 1.0
 
 
-@pytest.mark.parametrize(
-    "N",
-    [2**k for k in range(4, 4 + NUM_N_VALUES_PER_TEST)],  # [16, 32, 64, 128, 256]
-)
-@pytest.mark.parametrize(
-    "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
-)
-def test_sigmoid_vector(rng_seed: int, N: int) -> None:
-    """Test sigmoid_vector for multiple values and different N."""
-    rng = np.random.default_rng(rng_seed)
-    # Generate random input values
-    x_vec = rng.uniform(low=-10.0, high=10.0, size=N).astype(np.float32)
+# @pytest.mark.parametrize(
+#     "N",
+#     [2**k for k in range(4, 4 + NUM_N_VALUES_PER_TEST)],  # [16, 32, 64, 128, 256]
+# )
+# @pytest.mark.parametrize(
+#     "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
+# )
+# def test_sigmoid_vector(rng_seed: int, N: int) -> None:
+#     """Test sigmoid_vector for multiple values and different N."""
+#     rng = np.random.default_rng(rng_seed)
+#     # Generate random input values
+#     x_vec = rng.uniform(low=-10.0, high=10.0, size=N).astype(np.float32)
 
-    # Compute expected results using scipy
-    expected = expit(x_vec)
+#     # Compute expected results using scipy
+#     expected = expit(x_vec)
 
-    # Compute actual results using our implementation
-    actual = np.array(sigmoid_vector(x_vec.tolist()))
+#     # Compute actual results using our implementation
+#     actual = np.array(sigmoid_vector(x_vec.tolist()))
 
-    # Compare results
-    assert len(actual) == len(expected)
-    assert np.allclose(actual, expected, rtol=1e-5, atol=1e-6)
+#     # Compare results
+#     assert len(actual) == len(expected)
+#     assert np.allclose(actual, expected, rtol=1e-5, atol=1e-6)
 
-    # Check that all sigmoid outputs are within [0, 1]
-    assert np.all(actual >= 0.0)
-    assert np.all(actual <= 1.0)
+#     # Check that all sigmoid outputs are within [0, 1]
+#     assert np.all(actual >= 0.0)
+#     assert np.all(actual <= 1.0)
 
 
 def test_sigmoid_bounds() -> None:

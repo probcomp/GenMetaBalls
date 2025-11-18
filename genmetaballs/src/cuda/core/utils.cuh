@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <cuda_runtime.h>
+
+#define CUDA_CALLABLE __host__ __device__
 
 #define CUDA_CHECK(x)                                                                              \
     do {                                                                                           \
@@ -9,6 +12,13 @@
     } while (0)
 
 void cuda_check(cudaError_t code, const char* file, int line);
+
+__host__ __device__ __forceinline__ float sigmoid(float x) {
+    if (isnan(x)) {
+        return x;
+    }
+    return 1.0f / (1.0f + expf(-x));
+}
 
 // XXX container_t should be a thrust container type
 template <typename container_t>
