@@ -68,9 +68,8 @@ enable_testing()
 find_package(GTest CONFIG REQUIRED)
 
 # C++/CUDA test executable
-add_executable(test_add
-  tests/test_add.cu
-)
+file(GLOB CPP_CUDA_TEST_SOURCES tests/cpp_tests/*.cu tests/cpp_tests/*.cpp)
+add_executable(test_add ${CPP_CUDA_TEST_SOURCES})
 
 target_link_libraries(test_add
   PRIVATE
