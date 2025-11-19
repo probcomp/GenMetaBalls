@@ -52,8 +52,12 @@ class Rotation {
 private:
     float4 unit_quat_;
 
+    Rotation(float4 unit_quat): unit_quat_{unit_quat} {};
+
 public:
-    Rotation() unit_quat_{0.0f, 0.0f, 0.0f, 1.0f} {};
+    Rotation(): unit_quat_{0.0f, 0.0f, 0.0f, 1.0f} {};
+
+    static Rotation from_quat(float x, float y, float z, float w);
 
     CUDA_CALLABLE Vec3D apply(const Vec3D vec) const;
 

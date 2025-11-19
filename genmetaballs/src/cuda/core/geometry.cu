@@ -1,7 +1,15 @@
+#include <cmath>
+
 #include "geometry.cuh"
 
+CUDA_CALLABLE Rotation Rotation::from_quat(float x, float y, float z, float w)
+{
+    auto modulus = std::sqrt(x*x + y*y + z*z + w*w);
+    return Rotation{{x/modulus, y/modulus, z/modulus, w/modulus}};
+}
 
-__host__ __device__ Vec3D Rotation::apply(const Vec3D vec) const
+
+CUDA_CALLABLE Vec3D Rotation::apply(const Vec3D vec) const
 {
     // v' = q * v * q^(-1) for unit quaternions
     // where q^(-1) = (-x, -y, -z, w)
@@ -15,7 +23,7 @@ __host__ __device__ Vec3D Rotation::apply(const Vec3D vec) const
     return 2.0f * d * q + (w * w - dot(q, q)) * vec + 2.0f * w * c;
 }
 
-__host__ __device__ Rotation Rotation::compose(const Rotation& rot) const
+CUDA_CALLABLE Rotation Rotation::compose(const Rotation& rot) const
 {
     // Quaternion multiplication: q1 * q2
     float4 q1 = unit_quat_;
@@ -28,7 +36,7 @@ __host__ __device__ Rotation Rotation::compose(const Rotation& rot) const
          q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z}};
 }
 
-__host__ __device__ Rotation Rotation::inv() const
+CUDA_CALLABLE Rotation Rotation::inv() const
 {
     // For unit quaternions, inverse = conjugate: (-x, -y, -z, w)
     return Rotation{{-unit_quat_.x, -unit_quat_.y, -unit_quat_.z, unit_quat_.w}};

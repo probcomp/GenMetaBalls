@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from genmetaballs import _genmetaballs_bindings.geometry as geometry
+from genmetaballs._genmetaballs_bindings import geometry as geometry
 
 
 @pytest.fixture
