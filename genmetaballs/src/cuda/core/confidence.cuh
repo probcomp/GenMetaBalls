@@ -6,8 +6,6 @@
 
 #include "utils.cuh"
 
-namespace nb = nanobind;
-
 struct TwoParameterConfidence {
 
     float beta4;
