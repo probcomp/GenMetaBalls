@@ -47,6 +47,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     nb::class_<Rotation>(geometry, "Rotation")
         .def(nb::init<>())
+        .def_static("from_quat", &Rotation::from_quat, "Create rotation from quaternion",
+                    nb::arg("x"), nb::arg("y"), nb::arg("z"), nb::arg("w"))
         .def("apply", &Rotation::apply, "Apply rotation to vector", nb::arg("vec"))
         .def("compose", &Rotation::compose, "Compose with another rotation", nb::arg("rot"))
         .def("inv", &Rotation::inv, "Inverse rotation");
