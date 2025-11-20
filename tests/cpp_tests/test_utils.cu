@@ -15,8 +15,8 @@ __global__ void fill_array2d_kernel(Array2D<float> array2d) {
     uint32_t i = threadIdx.x;
     uint32_t j = threadIdx.y;
 
-    if (i < array2d.extent(0) && j < array2d.extent(1)) {
-        array2d(i, j) = i * array2d.extent(1) + j;
+    if (i < array2d.num_rows() && j < array2d.num_cols()) {
+        array2d(i, j) = i * array2d.num_cols() + j;
     }
 }
 
@@ -51,8 +51,8 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     }
 
     EXPECT_EQ(array2d.size(), rows * cols);
-    EXPECT_EQ(array2d.extent(0), rows);
-    EXPECT_EQ(array2d.extent(1), cols);
+    EXPECT_EQ(array2d.num_rows(), rows);
+    EXPECT_EQ(array2d.num_cols(), cols);
     EXPECT_EQ(array2d.rank(), 2); // 2D array
 
     // create host vector to verify the data
