@@ -1,0 +1,96 @@
+import numpy as np
+import pytest
+from scipy.special import expit
+
+from genmetaballs.core import (
+    TwoParameterConfidence,
+    ZeroParameterConfidence,
+)
+
+
+def ground_truth_two_parameter_confidence(
+    beta4: float, beta5: float, sumexpd: float | np.ndarray
+) -> float | np.ndarray:
+    """Compute the five parameter confidence for a single value or an array of values using numpy."""
+    return expit((beta4 * sumexpd) + beta5)
+
+
+def ground_truth_zero_parameter_confidence(
+    sumexpd: float | np.ndarray,
+) -> float | np.ndarray:
+    """Compute the three parameter confidence for a single value or an array of values using numpy."""
+    return 1.0 - np.exp(-sumexpd)
+
+
+NUM_RNG_SEEDS_PER_TEST = 5
+NUM_N_VALUES_PER_TEST = 5
+MASTER_SEED = 0
+
+
+# Test data for different confidence types
+CONFIDENCE_TEST_CASES = [
+    # (confidence_class, confidence_kwargs, ground_truth_func, ground_truth_kwargs)
+    ("zero_param", {}, ground_truth_zero_parameter_confidence, {}),
+    (
+        "two_param",
+        {"beta4": 0.5, "beta5": -1.0},
+        ground_truth_two_parameter_confidence,
+        {"beta4": 0.5, "beta5": -1.0},
+    ),
+    (
+        "two_param",
+        {"beta4": 1.0, "beta5": 0.0},
+        ground_truth_two_parameter_confidence,
+        {"beta4": 1.0, "beta5": 0.0},
+    ),
+    (
+        "two_param",
+        {"beta4": -0.5, "beta5": 2.0},
+        ground_truth_two_parameter_confidence,
+        {"beta4": -0.5, "beta5": 2.0},
+    ),
+]
+
+
+def create_confidence_instance(conf_type: str, kwargs: dict):
+    """Helper function to dispatch the appropriate confidence instance."""
+    if conf_type == "two_param":
+        return TwoParameterConfidence(kwargs["beta4"], kwargs["beta5"])
+    elif conf_type == "zero_param":
+        return ZeroParameterConfidence()
+    else:
+        raise ValueError(f"Unknown confidence type: {conf_type}")
+
+
+@pytest.mark.parametrize(
+    "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
+)
+@pytest.mark.parametrize(
+    "conf_type, conf_kwargs, ground_truth_func, gt_kwargs", CONFIDENCE_TEST_CASES
+)
+def test_confidence_single_value(
+    rng_seed: int, conf_type: str, conf_kwargs: dict, ground_truth_func, gt_kwargs: dict
+) -> None:
+    """Test that confidence can be computed correctly on the CPU for a single value across all confidence types."""
+    rng = np.random.default_rng(rng_seed)
+    confidence = create_confidence_instance(conf_type, conf_kwargs)
+
+    # range of sumexpd is [tiny (smallest f32 value above 0), max (largest f32 value)] since it is the sum of exp(d) for all metaballs
+    sumexpd = (
+        rng.uniform(low=np.finfo(np.float32).tiny, high=np.finfo(np.float32).max, size=1)
+        .astype(np.float32)
+        .item()
+    )
+
+    # Compute expected using appropriate ground truth function
+    if conf_type == "two_param":
+        expected = ground_truth_func(gt_kwargs["beta4"], gt_kwargs["beta5"], sumexpd)
+    else:
+        expected = ground_truth_func(sumexpd)
+
+    actual = confidence.get_confidence(sumexpd)
+
+    # check that the actual and expected values are close
+    assert np.isclose(actual, expected, rtol=1e-6)
+    # check that all confidence values are between 0 and 1 inclusive
+    assert actual >= 0.0 and actual <= 1.0

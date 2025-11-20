@@ -1,12 +1,13 @@
 #include <cstdint>
 #include <cuda_runtime.h>
+#include <vector>
 
 constexpr NUM_BLOCKS dim3(10); // XXX madeup
 constexpr THREADS_PER_BLOCK dim3(10);
 
 namespace FMB {
 
-__device__ __host__ std::vector<std::pair<PixelCoord, Ray>> get_pixel_coords_and_rays(
+CUDA_CALLABLE std::vector<std::pair<PixelCoord, Ray>> get_pixel_coords_and_rays(
     const dim3 thread_idx, const dim3 block_idx) {
     std::vector<std::pair<PixelCoord, Ray>> res;
 
