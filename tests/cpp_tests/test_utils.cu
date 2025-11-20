@@ -1,18 +1,34 @@
+#include <array>
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 #include <numeric>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <type_traits>
 #include <vector>
 
 #include "core/utils.cuh"
 
-TEST(Array2DTest, CreateAndAccessArray2DOnCPU) {
+template <typename Container>
+class HostArray2DTestFixture : public ::testing::Test {};
+
+using HostContainerTypes = ::testing::Types<std::vector<float>, std::array<float, 24>, // 4 * 6 = 24
+                                            thrust::host_vector<float>>;
+
+TYPED_TEST_SUITE(HostArray2DTestFixture, HostContainerTypes);
+
+TYPED_TEST(HostArray2DTestFixture, CreateAndAccessArray2DOnHost) {
     uint32_t rows = 4;
     uint32_t cols = 6;
-    // Array2D should work with any container
-    thrust::host_vector<float> data(rows * cols);
+
+    // Initialize container - std::array is fixed size, others use size constructor
+    TypeParam data;
+    if constexpr (std::is_same_v<TypeParam, std::array<float, 24>>) {
+        data = std::array<float, 24>{};
+    } else {
+        data = TypeParam(rows * cols);
+    }
     std::iota(data.begin(), data.end(), 0);
 
     // create 2D view into the underlying data on CPU
