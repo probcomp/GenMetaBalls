@@ -46,3 +46,47 @@ TYPED_TEST(HostArray2DTestFixture, CreateAndAccessArray2DOnHost) {
         }
     }
 }
+
+// CUDA kernel to fill Array2D with sequential values
+__global__ void fill_array2d(Array2D<float> array2d) {
+    uint32_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    uint32_t j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < array2d.extent(0) && j < array2d.extent(1)) {
+        array2d(i, j) = i * array2d.extent(1) + j;
+    }
+}
+
+TEST(Array2DTest, CreateAndAccessArray2DOnDevice) {
+    uint32_t rows = 3;
+    uint32_t cols = 5;
+    uint32_t size = rows * cols;
+
+    // Initialize device vector
+    thrust::device_vector<float> device_data(size);
+
+    // create 2D view into the underlying data on device
+    auto array2d = Array2D<float>(thrust::raw_pointer_cast(device_data.data()), rows, cols);
+
+    EXPECT_EQ(array2d.size(), rows * cols);
+    EXPECT_EQ(array2d.extent(0), rows);
+    EXPECT_EQ(array2d.extent(1), cols);
+
+    // Launch kernel to fill Array2D on device
+    // Note: we could've simply use thrust::sequence to fill the device vector,
+    // but this is a simple example to demonstrate how to pass an Array2D to a kernel.
+    dim3 block_size(16, 16);
+    dim3 grid_size((rows + block_size.x - 1) / block_size.x,
+                   (cols + block_size.y - 1) / block_size.y);
+    fill_array2d<<<grid_size, block_size>>>(array2d);
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // Copy data back to host to verify
+    thrust::host_vector<float> host_data = device_data;
+    for (auto i = 0; i < rows; i++) {
+        for (auto j = 0; j < cols; j++) {
+            EXPECT_FLOAT_EQ(host_data[i * cols + j], i * cols + j);
+        }
+    }
+}
