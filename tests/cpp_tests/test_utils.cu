@@ -1,8 +1,6 @@
-#include <array>
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
-#include <numeric>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 #include <type_traits>
@@ -33,7 +31,7 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
 
     auto data = TypeParam(rows * cols);
     // create 2D view into the underlying data on host or device
-    auto array2d = Array2D<float>(thrust::raw_pointer_cast(data.data()), rows, cols);
+    auto array2d = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
 
     if constexpr (std::is_same_v<TypeParam, std::vector<float>>) {
         for (auto i = 0; i < rows; i++) {

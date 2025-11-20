@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cuda/std/mdspan>
 #include <cuda_runtime.h>
-#include <thrust/device_vector.h>
 
 #define CUDA_CHECK(x)                                                                              \
     do {                                                                                           \
