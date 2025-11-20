@@ -52,4 +52,7 @@ CheckOptions:
     value: 'std::vector;.*Iterator'
   - key: modernize-use-nodiscard.Macros
     value: 'CUDA_CHECK'
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    # GTest macros can artificially increase the cognitive complexity, so we ignore them.
+    value: true
 

@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
 #include <stdexcept>
 
@@ -12,23 +13,6 @@ constexpr uint32_t GRID_DIM = 4096;
 constexpr uint32_t BLOCK_DIM = 1024;
 
 namespace nb = nanobind;
-
-// Initialize the confidence submodule (called from main module)
-void init_confidence_submodule(nb::module_& m) {
-    nb::class_<ZeroParameterConfidence>(m, "ZeroParameterConfidence")
-        .def(nb::init<>())
-        .def("get_confidence", &ZeroParameterConfidence::get_confidence);
-
-    nb::class_<TwoParameterConfidence>(m, "TwoParameterConfidence")
-        .def(nb::init<float, float>())
-        .def("get_confidence", &TwoParameterConfidence::get_confidence);
-}
-
-// Initialize the utils submodule (called from main module)
-void init_utils_submodule(nb::module_& m) {
-    // Expose sigmoid function for single values
-    m.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
-}
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -43,16 +27,23 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_rw("x", &Vec3D::x)
         .def_rw("y", &Vec3D::y)
         .def_rw("z", &Vec3D::z)
-        .def("__add__", &operator+)
-        .def("__sub__", &operator-)
+        .def(nb::self + nb::self)
+        .def(nb::self - nb::self)
         .def("__repr__",
              [](const Vec3D& v) { return nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z); });
 
-    // Create confidence submodule
-    nb::module_ confidence_submodule = m.def_submodule("confidence");
-    init_confidence_submodule(confidence_submodule);
+    // confidence submodule
+    nb::module_ confidence = m.def_submodule("confidence");
+    nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
+        .def(nb::init<>())
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence);
 
-    // Create utils submodule
-    nb::module_ utils_submodule = m.def_submodule("utils");
-    init_utils_submodule(utils_submodule);
-}
+    nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
+        .def(nb::init<float, float>())
+        .def("get_confidence", &TwoParameterConfidence::get_confidence);
+
+    // utils submodule
+    nb::module_ utils = m.def_submodule("utils");
+    utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
+
+} // NB_MODULE(_genmetaballs_bindings)

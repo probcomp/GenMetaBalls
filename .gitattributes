@@ -1,0 +1,8 @@
+# prevent line-based 3-way merge on pixi.lock
+pixi.lock merge=binary linguist-language=YAML linguist-generated=true
+
+# Exclude scripts directory from language stats
+scripts/** linguist-vendored=true
+
+# Mark Jupyter notebooks as documentation instead of source code
+*.ipynb linguist-documentation=true

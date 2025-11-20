@@ -115,5 +115,6 @@ SpacesInSquareBrackets: false
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
+InsertNewlineAtEOF: true
 ...
 
