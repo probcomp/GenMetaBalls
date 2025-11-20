@@ -69,9 +69,9 @@ find_package(GTest CONFIG REQUIRED)
 
 # C++/CUDA test executable
 file(GLOB CPP_CUDA_TEST_SOURCES tests/cpp_tests/*.cu tests/cpp_tests/*.cpp)
-add_executable(test_add ${CPP_CUDA_TEST_SOURCES})
+add_executable(cpp_tests ${CPP_CUDA_TEST_SOURCES})
 
-target_link_libraries(test_add
+target_link_libraries(cpp_tests
   PRIVATE
     genmetaballs_core
     GTest::gtest
@@ -79,9 +79,9 @@ target_link_libraries(test_add
 )
 
 # Enable CUDA for the test executable
-set_target_properties(test_add PROPERTIES
+set_target_properties(cpp_tests PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
 )
 
 include(GoogleTest)
-gtest_discover_tests(test_add)
+gtest_discover_tests(cpp_tests)

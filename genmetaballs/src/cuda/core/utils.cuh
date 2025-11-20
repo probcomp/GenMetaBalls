@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cuda/std/mdspan>
 #include <cuda_runtime.h>
 
 #define CUDA_CHECK(x)                                                                              \
@@ -10,27 +11,38 @@
 
 void cuda_check(cudaError_t code, const char* file, int line);
 
-// XXX container_t should be a thrust container type
-template <typename container_t>
+// Non-owning 2D view into a contiguous array in either host or device memory
+template <typename T>
 class Array2D {
 private:
-    // XXX TODO: make sure this works
-    container_t data_;
+    cuda::std::mdspan<
+        T, cuda::std::extents<uint32_t, cuda::std::dynamic_extent, cuda::std::dynamic_extent>>
+        data_view_;
 
 public:
-    __host__ __device__ __forceinline__ container_t& at(const uint32_t i, const uint32_t j) {
-        return data_;
-        // return data_[i * width + j];
+    // constructor
+    __host__ __device__ constexpr Array2D(T* data, uint32_t rows, uint32_t cols)
+        : data_view_(data, rows, cols) {}
+
+    // accessor methods
+    __host__ __device__ constexpr T& operator()(uint32_t row, uint32_t col) {
+        return data_view_(row, col);
+    }
+    __host__ __device__ constexpr T operator()(uint32_t row, uint32_t col) const {
+        return data_view_(row, col);
+    }
+    // size methods
+    __host__ __device__ constexpr auto num_rows() const noexcept {
+        return data_view_.extent(0);
+    }
+    __host__ __device__ constexpr auto num_cols() const noexcept {
+        return data_view_.extent(1);
     }
 
-    __host__ __device__ __forceinline__ const container_t& at(const uint32_t i,
-                                                              const uint32_t j) const {
-        return data_;
-        // return data_[i * width + j];
+    __host__ __device__ constexpr auto rank() const noexcept {
+        return data_view_.rank();
     }
-
-    __host__ __device__ constexpr uint32_t size() const {
-        return 0;
-        // return width * height;
+    __host__ __device__ constexpr auto size() const noexcept {
+        return data_view_.size();
     }
 };

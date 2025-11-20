@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
 
 #include "core/add.cuh"
@@ -20,8 +21,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_rw("x", &Vec3D::x)
         .def_rw("y", &Vec3D::y)
         .def_rw("z", &Vec3D::z)
-        .def("__add__", &operator+)
-        .def("__sub__", &operator-)
+        .def(nb::self + nb::self)
+        .def(nb::self - nb::self)
         .def("__repr__", [](const Vec3D& v) {
             nb::str s = nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z);
             return s;
