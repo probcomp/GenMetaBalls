@@ -2,7 +2,6 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
-#include <stdexcept>
 
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
