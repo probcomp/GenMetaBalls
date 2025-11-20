@@ -52,12 +52,12 @@ class Rotation {
 private:
     float4 unit_quat_;
 
-    Rotation(float4 unit_quat): unit_quat_{unit_quat} {};
+    CUDA_CALLABLE Rotation(float4 unit_quat): unit_quat_{unit_quat} {};
 
 public:
-    Rotation(): unit_quat_{0.0f, 0.0f, 0.0f, 1.0f} {};
+    CUDA_CALLABLE Rotation(): unit_quat_{0.0f, 0.0f, 0.0f, 1.0f} {};
 
-    static Rotation from_quat(float x, float y, float z, float w);
+    static CUDA_CALLABLE Rotation from_quat(float x, float y, float z, float w);
 
     CUDA_CALLABLE Vec3D apply(const Vec3D vec) const;
 
@@ -66,29 +66,52 @@ public:
     CUDA_CALLABLE Rotation inv() const;
 };
 
-struct Pose {
-    Rotation rot;
-    Vec3D tran;
+class Pose {
+private:
+    Rotation rot_;
+    Vec3D tran_;
 
-    CUDA_CALLABLE inline Vec3D apply(const Vec3D vec) const
+    CUDA_CALLABLE Pose(const Rotation rot, const Vec3D tran): rot_{rot}, tran_{tran} {}
+
+public:
+    //these member functions are defined in class body to allow for possible inlining
+    
+    CUDA_CALLABLE Pose(): rot_{Rotation()}, tran_{0.0f, 0.0f, 0.0f} {}
+
+    static CUDA_CALLABLE Pose from_components(const Rotation rot, const Vec3D tran)
     {
-        return tran + rot.apply(vec);
+        return {rot, tran};
     }
 
-    CUDA_CALLABLE inline Pose compose(const Pose &pose) const
+    CUDA_CALLABLE Rotation get_rot() const
+    {
+        return rot_;
+    }
+
+    CUDA_CALLABLE Vec3D get_tran() const
+    {
+        return tran_;
+    }
+
+    CUDA_CALLABLE Vec3D apply(const Vec3D vec) const
+    {
+        return tran_ + rot_.apply(vec);
+    }
+
+    CUDA_CALLABLE Pose compose(const Pose &pose) const
     {
         /*
          * If $A_i$ is the matrix corresponding to pose object `p_i`, then
          * $A_1A_2$ is the matrix corresponding to the pose object
          * `p_1.compose(p2)`.
          */
-        return {rot.compose(pose.rot), rot.apply(pose.tran) + tran};
+        return {rot_.compose(pose.rot_), rot_.apply(pose.tran_) + tran_};
     }
 
-    CUDA_CALLABLE inline Pose inv() const
+    CUDA_CALLABLE Pose inv() const
     {
-        auto rotinv = rot.inv();
-        return {rotinv, -rotinv.apply(tran)};
+        auto rotinv = rot_.inv();
+        return {rotinv, -rotinv.apply(tran_)};
     }
 };
 

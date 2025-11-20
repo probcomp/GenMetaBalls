@@ -55,8 +55,11 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     nb::class_<Pose>(geometry, "Pose")
         .def(nb::init<>())
-        .def_rw("rot", &Pose::rot)
-        .def_rw("tran", &Pose::tran)
+        .def_static("from_components", &Pose::from_components,
+                    "Create rotation from a rotation and a translation",
+                    nb::arg("rot"), nb::arg("tran"))
+        .def_prop_ro("rot", &Pose::get_rot, "get the rotation component")
+        .def_prop_ro("tran", &Pose::get_tran, "get the translation component")
         .def("apply", &Pose::apply, "Apply pose to vector", nb::arg("vec"))
         .def("compose", &Pose::compose, "Compose with another pose", nb::arg("pose"))
         .def("inv", &Pose::inv, "Inverse pose");
