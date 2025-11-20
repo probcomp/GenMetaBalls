@@ -82,8 +82,7 @@ TEST(GpuSigmoidTest, SigmoidGPUWithinBounds) {
 
             // Run on GPU
             constexpr uint32_t block_dim = 256;
-            uint32_t grid_dim = (N + block_dim - 1) / block_dim;
-            std::vector<float> actual = test_utils_gpu::gpu_sigmoid<grid_dim, block_dim>(x_vec);
+            std::vector<float> actual = test_utils_gpu::gpu_sigmoid<1024, block_dim>(x_vec);
 
             // Check [0, 1] bounds
             ASSERT_TRUE(std::all_of(actual.begin(), actual.end(),
