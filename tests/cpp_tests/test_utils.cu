@@ -92,15 +92,21 @@ TEST(GpuSigmoidTest, SigmoidGPUWithinBounds) {
     }
 }
 
+namespace test_utils_gpu {
 // CUDA kernel to fill Array2D with sequential values
 __global__ void fill_array2d_kernel(Array2D<float> array2d) {
     uint32_t i = threadIdx.x;
     uint32_t j = threadIdx.y;
 
     if (i < array2d.num_rows() && j < array2d.num_cols()) {
-        array2d(i, j) = i * array2d.num_cols() + j;
+        if (i == array2d.num_rows() - 1) {
+            array2d[i][j] = -1.0f; // last row set to -1
+        } else {
+            array2d[i][j] = i * array2d.num_cols() + j;
+        }
     }
 }
+} // namespace test_utils_gpu
 
 template <typename Container>
 class Array2DTestFixture : public ::testing::Test {};
@@ -118,16 +124,19 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     auto array2d = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
 
     if constexpr (std::is_same_v<TypeParam, std::vector<float>>) {
-        for (auto i = 0; i < rows; i++) {
+        for (auto i = 0; i < rows - 1; i++) {
             for (auto j = 0; j < cols; j++) {
-                array2d(i, j) = i * cols + j;
+                array2d[i][j] = i * cols + j;
             }
+        }
+        for (auto& val : array2d[rows - 1]) {
+            val = -1.0f; // setting last row to -1 with range-based for loop
         }
     } else {
         // Launch kernel to fill Array2D on device
         // Note: we could've simply use thrust::sequence to fill the device vector,
         // but this is a simple example to demonstrate how to pass an Array2D to a kernel.
-        fill_array2d_kernel<<<1, dim3(rows, cols)>>>(array2d);
+        test_utils_gpu::fill_array2d_kernel<<<1, dim3(rows, cols)>>>(array2d);
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
     }
@@ -141,7 +150,10 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     // for std::vector, this simply duplicate the vector.
     // for thrust::device_vector, it will copy the data to the host.
     thrust::host_vector<float> host_data = data;
-    for (auto idx = 0; idx < rows * cols; idx++) {
+    for (auto idx = 0; idx < (rows - 1) * cols; idx++) {
         EXPECT_FLOAT_EQ(host_data[idx], idx);
+    }
+    for (auto idx = (rows - 1) * cols; idx < rows * cols; idx++) {
+        EXPECT_FLOAT_EQ(host_data[idx], -1.0f);
     }
 }
