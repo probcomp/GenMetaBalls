@@ -2,14 +2,10 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
-#include <stdexcept>
 
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
-
-constexpr uint32_t GRID_DIM = 4096;
-constexpr uint32_t BLOCK_DIM = 1024;
 
 namespace nb = nanobind;
 
