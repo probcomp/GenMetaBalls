@@ -19,6 +19,7 @@ Checks: >
   -readability-avoid-const-params-in-decls,
   -readability-braces-around-statements,
   -readability-isolate-declaration,
+  -readability-math-missing-parentheses,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,

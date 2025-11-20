@@ -23,7 +23,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
     /*
      * Geometry module bindings
      */
-    
+
     nb::module_ geometry = m.def_submodule("geometry", "Geometry helpers for GenMetaballs");
 
     nb::class_<Vec3D>(geometry, "Vec3D")
@@ -32,15 +32,14 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_ro("x", &Vec3D::x)
         .def_ro("y", &Vec3D::y)
         .def_ro("z", &Vec3D::z)
-        .def("__add__", static_cast<Vec3D(*)(const Vec3D, const Vec3D)>(&operator+))
-        .def("__sub__", static_cast<Vec3D(*)(const Vec3D, const Vec3D)>(&operator-))
-        .def("__neg__", static_cast<Vec3D(*)(const Vec3D)>(&operator-))
-        .def("__mul__", static_cast<Vec3D(*)(const Vec3D, float)>(&operator*))
-        .def("__rmul__", static_cast<Vec3D(*)(float, const Vec3D)>(&operator*))
-        .def("__truediv__", static_cast<Vec3D(*)(const Vec3D, float)>(&operator/))
-        .def("__repr__", [](const Vec3D& v) {
-            return nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z);
-        });
+        .def("__add__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator+))
+        .def("__sub__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator-))
+        .def("__neg__", static_cast<Vec3D (*)(const Vec3D)>(&operator-))
+        .def("__mul__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator*))
+        .def("__rmul__", static_cast<Vec3D (*)(float, const Vec3D)>(&operator*))
+        .def("__truediv__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator/))
+        .def("__repr__",
+             [](const Vec3D& v) { return nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z); });
 
     geometry.def("dot", &dot, "Dot product of two `Vec3D`s", nb::arg("a"), nb::arg("b"));
     geometry.def("cross", &cross, "Cross product of two `Vec3D`s", nb::arg("a"), nb::arg("b"));
@@ -56,8 +55,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::class_<Pose>(geometry, "Pose")
         .def(nb::init<>())
         .def_static("from_components", &Pose::from_components,
-                    "Create rotation from a rotation and a translation",
-                    nb::arg("rot"), nb::arg("tran"))
+                    "Create rotation from a rotation and a translation", nb::arg("rot"),
+                    nb::arg("tran"))
         .def_prop_ro("rot", &Pose::get_rot, "get the rotation component")
         .def_prop_ro("tran", &Pose::get_tran, "get the translation component")
         .def("apply", &Pose::apply, "Apply pose to vector", nb::arg("vec"))
@@ -90,4 +89,3 @@ NB_MODULE(_genmetaballs_bindings, m) {
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
 } // NB_MODULE(_genmetaballs_bindings)
-

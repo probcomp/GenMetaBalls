@@ -2,8 +2,8 @@ import operator as op
 
 import numpy as np
 import pytest
-from scipy.spatial.transform import Rotation as Rot
 from scipy.spatial.transform import RigidTransform as Rigid
+from scipy.spatial.transform import Rotation as Rot
 
 from genmetaballs._genmetaballs_bindings import geometry as geometry
 
@@ -30,8 +30,8 @@ def test_vec3d_repr_returns_valid_string() -> None:
         (np.add, op.add),
         (np.subtract, op.sub),
         (np.cross, geometry.cross),
-    ]
- )
+    ],
+)
 def test_vec3d_ops(rng: np.random.Generator, np_op, vec3d_op) -> None:
     _a, _b = rng.uniform(size=(100, 3)), rng.uniform(size=(100, 3))
     for i in range(100):
@@ -40,11 +40,13 @@ def test_vec3d_ops(rng: np.random.Generator, np_op, vec3d_op) -> None:
         _c = np_op(_a[i], _b[i])
         assert np.allclose(_c, np.array([c.x, c.y, c.z]))
 
+
 def test_vec3d_dot(rng: np.random.Generator) -> None:
     _a, _b = rng.uniform(size=(100, 3)), rng.uniform(size=(100, 3))
     for i in range(100):
         a, b = geometry.Vec3D(*_a[i]), geometry.Vec3D(*_b[i])
         assert np.allclose(np.dot(_a[i], _b[i]), geometry.dot(a, b))
+
 
 def test_rotation_apply(rng: np.random.Generator) -> None:
     quats = rng.uniform(-1, 1, size=(100, 4))
@@ -60,6 +62,7 @@ def test_rotation_apply(rng: np.random.Generator) -> None:
         result_geom = rot_geom.apply(vec_geom)
 
         assert np.allclose(result_scipy, np.array([result_geom.x, result_geom.y, result_geom.z]))
+
 
 def test_rotation_compose(rng: np.random.Generator) -> None:
     quats1 = rng.uniform(-1, 1, size=(100, 4))
@@ -82,11 +85,12 @@ def test_rotation_compose(rng: np.random.Generator) -> None:
             result_scipy = composed_scipy.apply(vecs[j])
             result_geom = composed_geom.apply(vec_geom)
             assert np.allclose(
-               result_scipy,
-               np.array([result_geom.x, result_geom.y, result_geom.z]),
-               rtol=1e-5,
-               atol=1e-6,
-           )
+                result_scipy,
+                np.array([result_geom.x, result_geom.y, result_geom.z]),
+                rtol=1e-5,
+                atol=1e-6,
+            )
+
 
 def test_rotation_inv(rng: np.random.Generator) -> None:
     quats = rng.uniform(-1, 1, size=(100, 4))
@@ -102,11 +106,12 @@ def test_rotation_inv(rng: np.random.Generator) -> None:
             vec = geometry.Vec3D(*vecs[j])
             vec_ = composed.apply(vec)
             assert np.allclose(
-               np.array([vec.x, vec.y, vec.z]),
-               np.array([vec_.x, vec_.y, vec_.z]),
-               rtol=1e-5,
-               atol=1e-6,
-           )
+                np.array([vec.x, vec.y, vec.z]),
+                np.array([vec_.x, vec_.y, vec_.z]),
+                rtol=1e-5,
+                atol=1e-6,
+            )
+
 
 def test_pose_apply(rng: np.random.Generator) -> None:
     exp_coords = rng.uniform(size=(100, 6))
@@ -125,6 +130,7 @@ def test_pose_apply(rng: np.random.Generator) -> None:
         result_geom = pose_geom.apply(vec_geom)
 
         assert np.allclose(result_scipy, np.array([result_geom.x, result_geom.y, result_geom.z]))
+
 
 def test_pose_compose(rng: np.random.Generator) -> None:
     exp_coords1 = rng.uniform(size=(100, 6))
@@ -151,11 +157,12 @@ def test_pose_compose(rng: np.random.Generator) -> None:
             result_scipy = composed_scipy.apply(vecs[j])
             result_geom = composed_geom.apply(vec_geom)
             assert np.allclose(
-               result_scipy,
-               np.array([result_geom.x, result_geom.y, result_geom.z]),
-               rtol=1e-5,
-               atol=1e-6,
-           )
+                result_scipy,
+                np.array([result_geom.x, result_geom.y, result_geom.z]),
+                rtol=1e-5,
+                atol=1e-6,
+            )
+
 
 def test_pose_inv(rng: np.random.Generator) -> None:
     exp_coords = rng.uniform(size=(100, 6))
@@ -175,8 +182,8 @@ def test_pose_inv(rng: np.random.Generator) -> None:
             vec = geometry.Vec3D(*vecs[j])
             vec_ = composed.apply(vec)
             assert np.allclose(
-               np.array([vec.x, vec.y, vec.z]),
-               np.array([vec_.x, vec_.y, vec_.z]),
-               rtol=1e-5,
-               atol=1e-6,
-           )
+                np.array([vec.x, vec.y, vec.z]),
+                np.array([vec_.x, vec_.y, vec_.z]),
+                rtol=1e-5,
+                atol=1e-6,
+            )
