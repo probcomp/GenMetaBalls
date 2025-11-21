@@ -3,6 +3,7 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
 
+#include "core/blender.cuh"
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
@@ -27,14 +28,35 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ confidence = m.def_submodule("confidence");
     nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
         .def(nb::init<>())
-        .def("get_confidence", &ZeroParameterConfidence::get_confidence);
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence)
+        .def("__repr__",
+             [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
 
     nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
         .def(nb::init<float, float>())
-        .def("get_confidence", &TwoParameterConfidence::get_confidence);
+        .def_rw("beta4", &TwoParameterConfidence::beta4)
+        .def_rw("beta5", &TwoParameterConfidence::beta5)
+        .def("get_confidence", &TwoParameterConfidence::get_confidence)
+        .def("__repr__", [](const TwoParameterConfidence& c) {
+            return nb::str("TwoParameterConfidence(beta4={}, beta5={})").format(c.beta4, c.beta5);
+        });
 
     // utils submodule
     nb::module_ utils = m.def_submodule("utils");
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
+
+    // blender submodule
+    nb::module_ blender = m.def_submodule("blender");
+    nb::class_<FourParameterBlender>(blender, "FourParameterBlender")
+        .def(nb::init<float, float, float, float>())
+        .def_rw("beta1", &FourParameterBlender::beta1)
+        .def_rw("beta2", &FourParameterBlender::beta2)
+        .def_rw("beta3", &FourParameterBlender::beta3)
+        .def_rw("eta", &FourParameterBlender::eta)
+        .def("blend", &FourParameterBlender::blend)
+        .def("__repr__", [](const FourParameterBlender& b) {
+            return nb::str("FourParameterBlender(beta1={}, beta2={}, beta3={}, eta={})")
+                .format(b.beta1, b.beta2, b.beta3, b.eta);
+        });
 
 } // NB_MODULE(_genmetaballs_bindings)

@@ -1,14 +1,17 @@
 #pragma once
 
-#include "fmb.h"
-#include "geometry.h"
+#include <cmath>
+#include <cuda_runtime.h>
 
-struct ThreeParameterBlender {
+#include "utils.cuh"
+
+struct FourParameterBlender {
     float beta1;
     float beta2;
+    float beta3;
     float eta;
 
-    CUDA_CALLABLE __forceinline__ // TODO inline?
-        float
-        blend(float t, float d, const FMB& fmb, const Ray& ray) const;
+    CUDA_CALLABLE __forceinline__ float blend(float t, float d) const {
+        return expf((beta1 * d * sigmoid((beta3 / eta) * t)) - ((beta2 / eta) * t));
+    }
 };
