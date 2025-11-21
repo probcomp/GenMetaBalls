@@ -3,8 +3,12 @@
 #include "geometry.cuh"
 
 struct FMB {
-    Pose pose; // mean + orientation
+    Pose pose;
     float3 extent;
+
+    FMB(const Pose _pose, const float3 _extent) : pose{_pose}, extent{_extent} {}
+
+    float quadratic_form(const Vec3D) const;
 };
 
 template <typename containter_template>
