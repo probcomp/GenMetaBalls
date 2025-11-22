@@ -22,7 +22,7 @@ def ground_truth_four_parameter_blender(
         wi = exp( (beta1 * di) * sigmoid((beta3/eta) * ti) - (beta2/eta) * ti )
     """
     sig = expit((beta3 / eta) * ti)
-    result = np.exp((beta1 * di) * sig - (beta2 / eta) * ti)
+    result = np.exp((beta1 * di * sig) - ((beta2 / eta) * ti))
     return result
 
 
@@ -55,7 +55,7 @@ def test_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
     blender = create_blender_instance(blender_kwargs)
 
     di = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()
-    ti = rng.uniform(low=0.1, high=10.0, size=1).astype(np.float32).item()
+    ti = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()
 
     expected = ground_truth_four_parameter_blender(
         blender_kwargs["beta1"],
@@ -66,9 +66,7 @@ def test_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
         ti,
     )
 
-    actual = blender.blend(di, ti)
-
-    print(f"actual: {actual}, expected: {expected}")
+    actual = blender.blend(t=ti, d=di)
 
     # check that the actual and expected values are close
     assert np.isclose(actual, expected, rtol=1e-6) or (np.isnan(actual) and np.isnan(expected))

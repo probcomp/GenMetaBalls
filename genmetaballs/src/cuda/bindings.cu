@@ -28,7 +28,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ confidence = m.def_submodule("confidence");
     nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
         .def(nb::init<>())
-        .def("get_confidence", &ZeroParameterConfidence::get_confidence)
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
         .def("__repr__",
              [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
 
@@ -36,7 +37,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def(nb::init<float, float>())
         .def_rw("beta4", &TwoParameterConfidence::beta4)
         .def_rw("beta5", &TwoParameterConfidence::beta5)
-        .def("get_confidence", &TwoParameterConfidence::get_confidence)
+        .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
         .def("__repr__", [](const TwoParameterConfidence& c) {
             return nb::str("TwoParameterConfidence(beta4={}, beta5={})").format(c.beta4, c.beta5);
         });
@@ -53,7 +55,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_rw("beta2", &FourParameterBlender::beta2)
         .def_rw("beta3", &FourParameterBlender::beta3)
         .def_rw("eta", &FourParameterBlender::eta)
-        .def("blend", &FourParameterBlender::blend)
+        .def("blend", &FourParameterBlender::blend, nb::arg("t"), nb::arg("d"),
+             "Blend two values with (t,d)")
         .def("__repr__", [](const FourParameterBlender& b) {
             return nb::str("FourParameterBlender(beta1={}, beta2={}, beta3={}, eta={})")
                 .format(b.beta1, b.beta2, b.beta3, b.eta);
