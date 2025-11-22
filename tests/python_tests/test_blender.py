@@ -4,6 +4,7 @@ from scipy.special import expit
 
 from genmetaballs.core import (
     FourParameterBlender,
+    ThreeParameterBlender,
 )
 
 
@@ -107,10 +108,8 @@ def test_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
 )
 def test_three_parameter_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
     """Test that ThreeParameterBlender computes correct blend values for a single value."""
-    from genmetaballs._genmetaballs_bindings import blender as blender_mod
-
     rng = np.random.default_rng(rng_seed)
-    blender = blender_mod.ThreeParameterBlender(
+    blender = ThreeParameterBlender(
         blender_kwargs["beta1"], blender_kwargs["beta2"], blender_kwargs["eta"]
     )
 
