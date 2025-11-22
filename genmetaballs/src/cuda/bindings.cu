@@ -62,4 +62,15 @@ NB_MODULE(_genmetaballs_bindings, m) {
                 .format(b.beta1, b.beta2, b.beta3, b.eta);
         });
 
+    nb::class_<ThreeParameterBlender>(blender, "ThreeParameterBlender")
+        .def(nb::init<float, float, float>())
+        .def_rw("beta1", &ThreeParameterBlender::beta1)
+        .def_rw("beta2", &ThreeParameterBlender::beta2)
+        .def_rw("eta", &ThreeParameterBlender::eta)
+        .def("blend", &ThreeParameterBlender::blend, nb::arg("t"), nb::arg("d"),
+             "Blend two values with (t,d)")
+        .def("__repr__", [](const ThreeParameterBlender& b) {
+            return nb::str("ThreeParameterBlender(beta1={}, beta2={}, eta={})")
+                .format(b.beta1, b.beta2, b.eta);
+        });
 } // NB_MODULE(_genmetaballs_bindings)

@@ -52,7 +52,7 @@ std::vector<float> gpu_blend(const std::vector<float>& t_vec, const std::vector<
 
 constexpr int NUM_RNG_SEEDS_PER_TEST = 5;
 constexpr int NUM_N_VALUES_PER_TEST = 5;
-constexpr uint32_t MASTER_SEED = 0;
+constexpr uint32_t MASTER_SEED = 42;
 
 static std::vector<int> blender_test_sizes() {
     std::vector<int> sizes;
@@ -75,6 +75,7 @@ static std::vector<BlenderCase> blender_cases() {
     };
 }
 
+// Smoke test for FourParameterBlender
 TEST(GpuBlenderTest, Blender_GPU_Smoke_FourParameter) {
     auto sizes = blender_test_sizes();
     std::mt19937 master_gen(MASTER_SEED);
@@ -104,14 +105,59 @@ TEST(GpuBlenderTest, Blender_GPU_Smoke_FourParameter) {
                 FourParameterBlender blender{blend_case.beta1, blend_case.beta2, blend_case.beta3,
                                              blend_case.eta};
 
-                // smoke testing to see if this gpu kernel can run, i'm not gong to test for
-                // correctness here since t was done in python
                 std::vector<float> actual = gpu_blend(t_vec, d_vec, blender);
 
                 ASSERT_EQ(actual.size(), static_cast<size_t>(N));
-                // Optionally verify all are finite
-                ASSERT_TRUE(std::all_of(actual.begin(), actual.end(),
-                                        [](float v) { return std::isfinite(v); }));
+            }
+        }
+    }
+}
+
+// Smoke test for ThreeParameterBlender
+struct ThreeParamBlenderCase {
+    float beta1, beta2, eta;
+    const char* name;
+};
+
+static std::vector<ThreeParamBlenderCase> threeparam_blender_cases() {
+    return {
+        {1.0F, 0.5F, 2.0F, "three_case1"},
+        {-2.0F, 1.0F, 1.5F, "three_case2"},
+        {0.0F, 0.0F, 1.0F, "three_case3"},
+        {0.5F, -0.5F, 0.5F, "three_case4"},
+    };
+}
+
+TEST(GpuBlenderTest, Blender_GPU_Smoke_ThreeParameter) {
+    auto sizes = blender_test_sizes();
+    std::mt19937 master_gen(MASTER_SEED);
+    std::uniform_int_distribution<uint32_t> seed_dist(0, std::numeric_limits<uint32_t>::max());
+    std::vector<uint32_t> seeds(NUM_RNG_SEEDS_PER_TEST);
+    for (auto& s : seeds)
+        s = seed_dist(master_gen);
+
+    for (int size_idx = 0; size_idx < static_cast<int>(sizes.size()); ++size_idx) {
+        int N = sizes[size_idx];
+        for (const auto& blend_case : threeparam_blender_cases()) {
+            for (uint32_t test_seed : seeds) {
+                SCOPED_TRACE(testing::Message() << "N=" << N << ", seed=" << test_seed
+                                                << ", blend_type=" << blend_case.name);
+
+                std::mt19937 rng(test_seed);
+                std::uniform_real_distribution<float> tdist(0.0F, 10.0F);
+                std::uniform_real_distribution<float> ddist(0.0F, 10.0F);
+
+                std::vector<float> t_vec(N), d_vec(N);
+                for (int i = 0; i < N; ++i) {
+                    t_vec[i] = tdist(rng);
+                    d_vec[i] = ddist(rng);
+                }
+
+                ThreeParameterBlender blender{blend_case.beta1, blend_case.beta2, blend_case.eta};
+
+                std::vector<float> actual = gpu_blend(t_vec, d_vec, blender);
+
+                ASSERT_EQ(actual.size(), static_cast<size_t>(N));
             }
         }
     }

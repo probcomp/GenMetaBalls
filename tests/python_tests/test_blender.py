@@ -26,6 +26,23 @@ def ground_truth_four_parameter_blender(
     return result
 
 
+def ground_truth_three_parameter_blender(
+    beta1: float,
+    beta2: float,
+    eta: float,
+    di: float | np.ndarray,
+    ti: float | np.ndarray,
+) -> float | np.ndarray:
+    """
+    Compute the three-parameter blender function for a single value or arrays.
+
+    Implements:
+        wi = exp(beta1 * di - (beta2 / eta) * ti)
+    """
+    result = np.exp((beta1 * di) - ((beta2 / eta) * ti))
+    return result
+
+
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
 MASTER_SEED = 0
@@ -71,4 +88,43 @@ def test_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
     # check that the actual and expected values are close
     assert np.isclose(actual, expected, rtol=1e-6) or (np.isnan(actual) and np.isnan(expected))
     # Check for finiteness (blend can in rare cases produce 0 or inf for extreme values)
+    assert np.isfinite(actual)
+
+    # INSERT_YOUR_CODE
+
+
+@pytest.mark.parametrize(
+    "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
+)
+@pytest.mark.parametrize(
+    "blender_kwargs",
+    [
+        {"beta1": 1.0, "beta2": 0.5, "eta": 2.0},
+        {"beta1": -2.0, "beta2": 1.0, "eta": 1.5},
+        {"beta1": 0.0, "beta2": 0.0, "eta": 1.0},
+        {"beta1": 0.5, "beta2": -0.5, "eta": 0.5},
+    ],
+)
+def test_three_parameter_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
+    """Test that ThreeParameterBlender computes correct blend values for a single value."""
+    from genmetaballs._genmetaballs_bindings import blender as blender_mod
+
+    rng = np.random.default_rng(rng_seed)
+    blender = blender_mod.ThreeParameterBlender(
+        blender_kwargs["beta1"], blender_kwargs["beta2"], blender_kwargs["eta"]
+    )
+
+    di = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()
+    ti = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()
+
+    # Expected from the definition: expf((beta1 * d) - ((beta2 / eta) * t))
+    beta1 = blender_kwargs["beta1"]
+    beta2 = blender_kwargs["beta2"]
+    eta = blender_kwargs["eta"]
+
+    expected = np.exp((beta1 * di) - ((beta2 / eta) * ti))
+    actual = blender.blend(t=ti, d=di)
+
+    # check close (rtol can be tight since it's directly a float formula)
+    assert np.isclose(actual, expected, rtol=1e-6) or (np.isnan(actual) and np.isnan(expected))
     assert np.isfinite(actual)

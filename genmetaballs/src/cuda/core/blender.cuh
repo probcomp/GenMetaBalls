@@ -15,3 +15,13 @@ struct FourParameterBlender {
         return expf((beta1 * d * sigmoid((beta3 / eta) * t)) - ((beta2 / eta) * t));
     }
 };
+
+struct ThreeParameterBlender {
+    float beta1;
+    float beta2;
+    float eta;
+
+    CUDA_CALLABLE __forceinline__ float blend(float t, float d) const {
+        return expf((beta1 * d) - ((beta2 / eta) * t));
+    }
+};
