@@ -9,10 +9,13 @@
 #include "utils.cuh"
 
 // This is the dummy version of getter, where all FMBs are relevant to any ray
-template <typename containter_template>
+template <template <typename> class containter_template>
 struct AllGetter {
-    FMBs<containter_template> fmbs;
+    const FMBs<containter_template>& fmbs;
     Pose extr; // Current assumption: rays are in camera frame
+
+    CUDA_CALLABLE AllGetter(const FMBs<containter_template>& fmbs, const Pose& extr)
+        : fmbs(fmbs), extr(extr) {}
 
     // It does not bother using the ray, because it simply returns all FMBs
     CUDA_CALLABLE const containter_template<FMB>& get_metaballs(const Ray& ray) const {
