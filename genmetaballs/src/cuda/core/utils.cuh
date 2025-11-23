@@ -5,6 +5,8 @@
 #include <cuda/std/mdspan>
 #include <cuda/std/span>
 #include <cuda_runtime.h>
+#include <memory>
+#include <thrust/memory.h>
 
 #define CUDA_CALLABLE __host__ __device__
 
@@ -29,8 +31,9 @@ private:
 
 public:
     // constructor
-    CUDA_CALLABLE constexpr Array2D(T* data_ptr, uint32_t rows, uint32_t cols)
-        : data_view_(data_ptr, rows, cols) {}
+    template <typename Pointer>
+    CUDA_CALLABLE constexpr Array2D(Pointer data_ptr, uint32_t rows, uint32_t cols)
+        : data_view_(thrust::raw_pointer_cast(data_ptr), rows, cols) {}
 
     // getting a 1D view of a specific row
     // this supports array2d[row][col] access pattern and range-based for loops
@@ -54,3 +57,10 @@ public:
         return data_view_.size();
     }
 }; // class Array2D
+
+// Type deduction guide
+// if initialized with (Pointer, int, int), deduce T by looking at what raw_pointer_cast returns
+// so we can write Array2D(array_ptr, rows, cols) instead of Array2D<Type>(array_ptr, rows, cols)
+template <typename Pointer>
+Array2D(Pointer, uint32_t, uint32_t)
+    -> Array2D<typename std::pointer_traits<Pointer>::element_type>;

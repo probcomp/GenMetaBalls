@@ -121,7 +121,7 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
 
     auto data = TypeParam(rows * cols);
     // create 2D view into the underlying data on host or device
-    auto array2d = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+    auto array2d = Array2D(data.data(), rows, cols);
 
     if constexpr (std::is_same_v<TypeParam, std::vector<float>>) {
         for (auto i = 0; i < rows - 1; i++) {
@@ -164,7 +164,7 @@ TYPED_TEST(Array2DTestFixture, ViewModifiesUnderlyingData) {
         uint32_t rows = 3;
         uint32_t cols = 4;
         auto data = TypeParam(rows * cols, 0.0f);
-        auto array2d = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+        auto array2d = Array2D(data.data(), rows, cols);
 
         // Modify through view
         array2d[1][2] = 42.5f;
@@ -184,8 +184,8 @@ TYPED_TEST(Array2DTestFixture, MultipleViewsOfSameData) {
         uint32_t rows = 2;
         uint32_t cols = 3;
         auto data = TypeParam(rows * cols, 0.0f);
-        auto view1 = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
-        auto view2 = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+        auto view1 = Array2D(data.data(), rows, cols);
+        auto view2 = Array2D(data.data(), rows, cols);
 
         // Modify through view1
         view1[0][0] = 100.0f;
