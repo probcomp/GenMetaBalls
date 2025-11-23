@@ -5,7 +5,7 @@ import pytest
 from scipy.spatial.transform import RigidTransform as Rigid
 from scipy.spatial.transform import Rotation as Rot
 
-from genmetaballs._genmetaballs_bindings import geometry as geometry
+from genmetaballs.core import geometry
 
 
 @pytest.fixture

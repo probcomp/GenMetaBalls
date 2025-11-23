@@ -3,7 +3,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cuda/std/mdspan>
+#include <cuda/std/span>
 #include <cuda_runtime.h>
+#include <memory>
+#include <thrust/memory.h>
 
 #define CUDA_CALLABLE __host__ __device__
 
@@ -28,28 +31,36 @@ private:
 
 public:
     // constructor
-    __host__ __device__ constexpr Array2D(T* data, uint32_t rows, uint32_t cols)
-        : data_view_(data, rows, cols) {}
+    template <typename Pointer>
+    CUDA_CALLABLE constexpr Array2D(Pointer data_ptr, uint32_t rows, uint32_t cols)
+        : data_view_(thrust::raw_pointer_cast(data_ptr), rows, cols) {}
 
-    // accessor methods
-    __host__ __device__ constexpr T& operator()(uint32_t row, uint32_t col) {
-        return data_view_(row, col);
+    // getting a 1D view of a specific row
+    // this supports array2d[row][col] access pattern and range-based for loops
+    // e.g., for (auto val : array2d[row]) { ... }
+    CUDA_CALLABLE constexpr auto operator[](uint32_t row) const {
+        return cuda::std::span<T>(data_view_.data_handle() + row * num_cols(), num_cols());
     }
-    __host__ __device__ constexpr T operator()(uint32_t row, uint32_t col) const {
-        return data_view_(row, col);
-    }
+
     // size methods
-    __host__ __device__ constexpr auto num_rows() const noexcept {
+    CUDA_CALLABLE constexpr auto num_rows() const noexcept {
         return data_view_.extent(0);
     }
-    __host__ __device__ constexpr auto num_cols() const noexcept {
+    CUDA_CALLABLE constexpr auto num_cols() const noexcept {
         return data_view_.extent(1);
     }
 
-    __host__ __device__ constexpr auto rank() const noexcept {
+    CUDA_CALLABLE constexpr auto ndim() const noexcept {
         return data_view_.rank();
     }
-    __host__ __device__ constexpr auto size() const noexcept {
+    CUDA_CALLABLE constexpr auto size() const noexcept {
         return data_view_.size();
     }
 }; // class Array2D
+
+// Type deduction guide
+// if initialized with (Pointer, int, int), deduce T by looking at what raw_pointer_cast returns
+// so we can write Array2D(array_ptr, rows, cols) instead of Array2D<Type>(array_ptr, rows, cols)
+template <typename Pointer>
+Array2D(Pointer, uint32_t, uint32_t)
+    -> Array2D<typename std::pointer_traits<Pointer>::element_type>;
