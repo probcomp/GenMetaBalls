@@ -52,4 +52,4 @@ public:
     __host__ __device__ constexpr auto size() const noexcept {
         return data_view_.size();
     }
-};
+}; // class Array2D
