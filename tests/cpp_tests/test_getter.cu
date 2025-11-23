@@ -21,7 +21,6 @@ struct template_container_of<Template<Args...>> {
     using type = Template<T>;
 };
 
-// Helper to extract template template parameter and provide types for TYPED_TEST
 template <typename InstantiatedContainer>
 struct GetterTestTypes;
 
@@ -41,21 +40,14 @@ class AllGetterTestFixture : public ::testing::Test {};
 using ContainerTypes = ::testing::Types<std::vector<FMB>, thrust::device_vector<FMB>>;
 TYPED_TEST_SUITE(AllGetterTestFixture, ContainerTypes);
 
-// CUDA kernel to test get_metaballs on device
-// For device vectors, we pass the raw device pointer and size directly
-// since we cannot pass AllGetter with thrust::device_vector references to device code
-__global__ void test_get_metaballs_kernel_device(const FMB* fmbs_data, uint32_t fmbs_size,
-                                                 const Ray* rays, int num_rays, int* out_sizes,
-                                                 void** out_ptrs) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        for (int i = 0; i < num_rays; ++i) {
-            // AllGetter returns all FMBs, so we just verify the pointer and size
-            out_sizes[i] = static_cast<int>(fmbs_size);
-            // Store pointer value for comparison (we only read, so const_cast is safe here)
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-            out_ptrs[i] = const_cast<void*>(static_cast<const void*>(fmbs_data));
-        }
-    }
+// CUDA kernel that constructs AllGetter and calls get_metaballs
+template <typename AllGetterType, typename FMBsType>
+__global__ void test_get_metaballs_kernel_device(const FMBsType* fmbs, const Pose* extr,
+                                                 const Ray* rays, int num_rays, int* out_sizes) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    AllGetterType getter(*fmbs, *extr);
+    const auto& fmbs_returned = getter.get_metaballs(rays[idx]);
+    out_sizes[idx] = static_cast<int>(fmbs_returned.size());
 }
 
 TYPED_TEST(AllGetterTestFixture, ReturnsAllFMBsForAnyRay) {
@@ -63,7 +55,7 @@ TYPED_TEST(AllGetterTestFixture, ReturnsAllFMBsForAnyRay) {
     using FMBsType = typename GetterTestTypes<TypeParam>::FMBsType;
     using AllGetterType = typename GetterTestTypes<TypeParam>::AllGetterType;
 
-    constexpr uint32_t num_fmbs = 5;
+    constexpr uint32_t num_fmbs = 40;
     FMBsType fmbs(num_fmbs);
 
     Pose extr = Pose();
@@ -74,6 +66,13 @@ TYPED_TEST(AllGetterTestFixture, ReturnsAllFMBsForAnyRay) {
         Ray{Vec3D{0.0f, 0.0f, 0.0f}, Vec3D{1.0f, 0.0f, 0.0f}},
         Ray{Vec3D{1.0f, 1.0f, 1.0f}, Vec3D{0.0f, 1.0f, 0.0f}},
         Ray{Vec3D{-1.0f, -1.0f, -1.0f}, Vec3D{0.0f, 0.0f, 1.0f}},
+        Ray{Vec3D{2.5f, -3.1f, 0.2f}, Vec3D{-0.5f, 0.6f, 0.0f}},
+        Ray{Vec3D{4.4f, 0.0f, -0.9f}, Vec3D{0.3f, -0.2f, 1.0f}},
+        Ray{Vec3D{5.0f, 2.2f, 1.1f}, Vec3D{-1.0f, 2.0f, 0.2f}},
+        Ray{Vec3D{0.0f, 7.0f, 6.0f}, Vec3D{0.0f, -1.0f, -1.0f}},
+        Ray{Vec3D{-2.0f, 0.0f, 0.0f}, Vec3D{0.2f, 1.1f, 0.7f}},
+        Ray{Vec3D{9.1f, -0.3f, 2.7f}, Vec3D{-0.3f, 0.1f, 0.0f}},
+        Ray{Vec3D{1.2f, 8.8f, -4.5f}, Vec3D{1.0f, 0.0f, 1.0f}},
     };
 
     // Get reference to all FMBs from the original FMBs object
@@ -100,48 +99,41 @@ TYPED_TEST(AllGetterTestFixture, ReturnsAllFMBsForAnyRay) {
     }
 
     // Test on GPU for device containers
-    // Note: We cannot pass AllGetter with thrust::device_vector references to device code
-    // because thrust::device_vector is a host-side object. Instead, we pass the raw device
-    // pointer and verify that AllGetter would return the same data.
+    // Construct AllGetter on device and call get_metaballs
     if constexpr (std::is_same_v<TypeParam, thrust::device_vector<FMB>>) {
         Ray* d_rays = nullptr;
+        FMBsType* d_fmbs = nullptr;
+        Pose* d_extr = nullptr;
         int* d_sizes = nullptr;
-        void** d_ptrs = nullptr;
         int num_rays = static_cast<int>(rays.size());
+
         CUDA_CHECK(cudaMalloc(&d_rays, num_rays * sizeof(Ray)));
+        CUDA_CHECK(cudaMalloc(&d_fmbs, sizeof(FMBsType)));
+        CUDA_CHECK(cudaMalloc(&d_extr, sizeof(Pose)));
         CUDA_CHECK(cudaMalloc(&d_sizes, num_rays * sizeof(int)));
-        CUDA_CHECK(cudaMalloc(&d_ptrs, num_rays * sizeof(void*)));
         CUDA_CHECK(cudaMemcpy(d_rays, rays.data(), num_rays * sizeof(Ray), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_fmbs, &fmbs, sizeof(FMBsType), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_extr, &extr, sizeof(Pose), cudaMemcpyHostToDevice));
 
-        // Get the raw device pointer and size from the FMBs container
-        const FMB* fmbs_data = thrust::raw_pointer_cast(all_fmbs_ref.data());
-        auto fmbs_size = static_cast<uint32_t>(all_fmbs_ref.size());
-
-        // Launch kernel with raw device pointer instead of getter object
-        test_get_metaballs_kernel_device<<<1, 1>>>(fmbs_data, fmbs_size, d_rays, num_rays, d_sizes,
-                                                   d_ptrs);
+        // Launch kernel that constructs getter and calls get_metaballs on the device
+        test_get_metaballs_kernel_device<AllGetterType, FMBsType>
+            <<<1, num_rays>>>(d_fmbs, d_extr, d_rays, num_rays, d_sizes);
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
 
         std::vector<int> host_sizes(num_rays);
-        std::vector<void*> host_ptrs(num_rays);
         CUDA_CHECK(
             cudaMemcpy(host_sizes.data(), d_sizes, num_rays * sizeof(int), cudaMemcpyDeviceToHost));
-        CUDA_CHECK(
-            cudaMemcpy(host_ptrs.data(), d_ptrs, num_rays * sizeof(void*), cudaMemcpyDeviceToHost));
 
-        // Get reference device pointer on host for comparison
-        const void* ref_ptr = static_cast<const void*>(fmbs_data);
-
+        // Verify that get_metaballs returns the correct size for all rays
         for (int i = 0; i < num_rays; ++i) {
             EXPECT_EQ(static_cast<size_t>(host_sizes[i]), all_fmbs_ref.size())
-                << "Device kernel returned correct size for ray " << i;
-            EXPECT_EQ(host_ptrs[i], ref_ptr)
-                << "Device kernel should return same device pointer for ray " << i;
+                << "Device get_metaballs returned correct size for ray " << i;
         }
 
         CUDA_CHECK(cudaFree(d_rays));
+        CUDA_CHECK(cudaFree(d_fmbs));
+        CUDA_CHECK(cudaFree(d_extr));
         CUDA_CHECK(cudaFree(d_sizes));
-        CUDA_CHECK(cudaFree(d_ptrs));
     }
 }
