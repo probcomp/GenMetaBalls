@@ -32,12 +32,12 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_ro("x", &Vec3D::x)
         .def_ro("y", &Vec3D::y)
         .def_ro("z", &Vec3D::z)
-        .def("__add__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator+))
-        .def("__sub__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator-))
-        .def("__neg__", static_cast<Vec3D (*)(const Vec3D)>(&operator-))
-        .def("__mul__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator*))
-        .def("__rmul__", static_cast<Vec3D (*)(float, const Vec3D)>(&operator*))
-        .def("__truediv__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator/))
+        .def(nb::self + nb::self)
+        .def(nb::self - nb::self)
+        .def(-nb::self)
+        .def(nb::self * float())
+        .def(float() * nb::self)
+        .def(nb::self / float())
         .def("__repr__",
              [](const Vec3D& v) { return nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z); });
 
