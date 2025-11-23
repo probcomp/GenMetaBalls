@@ -47,7 +47,7 @@ public:
         return data_view_.extent(1);
     }
 
-    CUDA_CALLABLE constexpr auto rank() const noexcept {
+    CUDA_CALLABLE constexpr auto ndim() const noexcept {
         return data_view_.rank();
     }
     CUDA_CALLABLE constexpr auto size() const noexcept {

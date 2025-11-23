@@ -144,7 +144,7 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     EXPECT_EQ(array2d.size(), rows * cols);
     EXPECT_EQ(array2d.num_rows(), rows);
     EXPECT_EQ(array2d.num_cols(), cols);
-    EXPECT_EQ(array2d.rank(), 2); // 2D array
+    EXPECT_EQ(array2d.ndim(), 2); // 2D array
 
     // create host vector to verify the data
     // for std::vector, this simply duplicate the vector.
@@ -155,5 +155,46 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     }
     for (auto idx = (rows - 1) * cols; idx < rows * cols; idx++) {
         EXPECT_FLOAT_EQ(host_data[idx], -1.0f);
+    }
+}
+
+// Test that modifications through view affect underlying data
+TYPED_TEST(Array2DTestFixture, ViewModifiesUnderlyingData) {
+    if constexpr (std::is_same_v<TypeParam, std::vector<float>>) {
+        uint32_t rows = 3;
+        uint32_t cols = 4;
+        auto data = TypeParam(rows * cols, 0.0f);
+        auto array2d = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+
+        // Modify through view
+        array2d[1][2] = 42.5f;
+        // Verify underlying data changed
+        EXPECT_FLOAT_EQ(data[1 * cols + 2], 42.5f);
+
+        // Modify underlying data directly
+        data[0 * cols + 1] = 99.9f;
+        // Verify view reflects change
+        EXPECT_FLOAT_EQ(array2d[0][1], 99.9f);
+    }
+}
+
+// Test multiple views of the same data
+TYPED_TEST(Array2DTestFixture, MultipleViewsOfSameData) {
+    if constexpr (std::is_same_v<TypeParam, std::vector<float>>) {
+        uint32_t rows = 2;
+        uint32_t cols = 3;
+        auto data = TypeParam(rows * cols, 0.0f);
+        auto view1 = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+        auto view2 = Array2D(thrust::raw_pointer_cast(data.data()), rows, cols);
+
+        // Modify through view1
+        view1[0][0] = 100.0f;
+        // Verify view2 sees the change
+        EXPECT_FLOAT_EQ(view2[0][0], 100.0f);
+
+        // Modify through view2
+        view2[1][2] = 200.0f;
+        // Verify view1 sees the change
+        EXPECT_FLOAT_EQ(view1[1][2], 200.0f);
     }
 }
