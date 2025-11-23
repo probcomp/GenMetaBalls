@@ -2,31 +2,17 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
-#include <stdexcept>
 
-#include "core/add.cuh"
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
-
-constexpr uint32_t GRID_DIM = 4096;
-constexpr uint32_t BLOCK_DIM = 1024;
 
 namespace nb = nanobind;
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
-    // simple add kernel
-    m.def("gpu_add", &gpu_add<GRID_DIM, BLOCK_DIM>, "Add two lists elementwise on the GPU",
-          nb::arg("a"), nb::arg("b"));
-
-    /*
-     * Geometry module bindings
-     */
-
-    nb::module_ geometry = m.def_submodule("geometry", "Geometry helpers for GenMetaballs");
-
-    nb::class_<Vec3D>(geometry, "Vec3D")
+    // exposing Vec3D
+    nb::class_<Vec3D>(m, "Vec3D")
         .def(nb::init<>())
         .def(nb::init<float, float, float>())
         .def_ro("x", &Vec3D::x)

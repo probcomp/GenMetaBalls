@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <cuda_runtime.h>
-#include <vector>
 
 #include "utils.cuh"
 

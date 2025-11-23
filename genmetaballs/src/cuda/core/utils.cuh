@@ -15,9 +15,6 @@
 void cuda_check(cudaError_t code, const char* file, int line);
 
 CUDA_CALLABLE __forceinline__ float sigmoid(float x) {
-    if (isnan(x)) {
-        return x;
-    }
     return 1.0f / (1.0f + expf(-x));
 }
 
