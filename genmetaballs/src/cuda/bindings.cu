@@ -2,23 +2,14 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
-#include <stdexcept>
 
-#include "core/add.cuh"
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
 
-constexpr uint32_t GRID_DIM = 4096;
-constexpr uint32_t BLOCK_DIM = 1024;
-
 namespace nb = nanobind;
 
 NB_MODULE(_genmetaballs_bindings, m) {
-
-    // simple add kernel
-    m.def("gpu_add", &gpu_add<GRID_DIM, BLOCK_DIM>, "Add two lists elementwise on the GPU",
-          nb::arg("a"), nb::arg("b"));
 
     /*
      * Geometry module bindings
@@ -32,12 +23,12 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_ro("x", &Vec3D::x)
         .def_ro("y", &Vec3D::y)
         .def_ro("z", &Vec3D::z)
-        .def("__add__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator+))
-        .def("__sub__", static_cast<Vec3D (*)(const Vec3D, const Vec3D)>(&operator-))
-        .def("__neg__", static_cast<Vec3D (*)(const Vec3D)>(&operator-))
-        .def("__mul__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator*))
-        .def("__rmul__", static_cast<Vec3D (*)(float, const Vec3D)>(&operator*))
-        .def("__truediv__", static_cast<Vec3D (*)(const Vec3D, float)>(&operator/))
+        .def(nb::self + nb::self)
+        .def(nb::self - nb::self)
+        .def(-nb::self)
+        .def(nb::self * float())
+        .def(float() * nb::self)
+        .def(nb::self / float())
         .def("__repr__",
              [](const Vec3D& v) { return nb::str("Vec3D({}, {}, {})").format(v.x, v.y, v.z); });
 
