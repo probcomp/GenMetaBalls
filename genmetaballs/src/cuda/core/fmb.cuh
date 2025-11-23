@@ -17,4 +17,12 @@ public:
     FMBs(uint32_t size) : fmbs_(size), log_weights_(size) {
         // TODO: set all log_weights_ to 0
     }
+    CUDA_CALLABLE const containter_template<FMB>& get_all_fmbs() const {
+        return fmbs_;
+    }
+
+    // Method to get a single FMB by index
+    CUDA_CALLABLE const FMB& get_fmb(uint32_t idx) const {
+        return fmbs_[idx];
+    }
 };
