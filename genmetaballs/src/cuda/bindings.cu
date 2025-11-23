@@ -1,15 +1,34 @@
 #include <cstdint>
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
 #include "core/confidence.cuh"
+#include "core/fmb.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
 
 namespace nb = nanobind;
 
 NB_MODULE(_genmetaballs_bindings, m) {
+
+    /*
+     * FMB module bindings
+     */
+
+    nb::module_ fmb = m.def_submodule("fmb", "Fuzzy meta ball data types");
+
+    nb::class_<FMB>(fmb, "FMB")
+        .def(nb::init<Pose, float, float, float>())
+        .def_prop_ro("pose", &FMB::get_pose)
+        .def_prop_ro("extent",
+                     [](const FMB& self) {
+                         auto extent = self.get_extent();
+                         return std::tuple{extent.x, extent.y, extent.z};
+                     })
+        .def("quadratic_form", &FMB::quadratic_form,
+             "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
 
     /*
      * Geometry module bindings
