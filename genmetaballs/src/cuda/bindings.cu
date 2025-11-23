@@ -11,8 +11,13 @@ namespace nb = nanobind;
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
-    // exposing Vec3D
-    nb::class_<Vec3D>(m, "Vec3D")
+    /*
+     * Geometry module bindings
+     */
+
+    nb::module_ geometry = m.def_submodule("geometry", "Geometry helpers for GenMetaballs");
+
+    nb::class_<Vec3D>(geometry, "Vec3D")
         .def(nb::init<>())
         .def(nb::init<float, float, float>())
         .def_ro("x", &Vec3D::x)
