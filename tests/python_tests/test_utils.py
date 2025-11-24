@@ -72,7 +72,6 @@ def test_float_array2d_creation_and_view():
 
     # then try converting back to numpy array via view
     data_view = array_2d.numpy()
-    print(type(data_view))
     assert np.allclose(data, data_view)
 
     # check that the view is writable and changes reflect back to original data

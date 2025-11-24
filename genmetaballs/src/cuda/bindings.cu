@@ -81,6 +81,10 @@ NB_MODULE(_genmetaballs_bindings, m) {
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
     nb::class_<Array2D<float>>(utils, "FloatArray2D")
+        .def_static("from_array",
+                    [](const nb::ndarray<float, nb::ndim<2>, nb::c_contig>& array) {
+                        return Array2D<float>(array.data(), array.shape(0), array.shape(1));
+                    })
         // TODO: switch to the array_api in future nanobind release
         // https://nanobind.readthedocs.io/en/latest/api_extra.html#_CPPv4N8nanobind9array_apiE
         .def(
@@ -90,10 +94,6 @@ NB_MODULE(_genmetaballs_bindings, m) {
                     self.data(), {self.num_rows(), self.num_cols()});
             },
             nb::rv_policy::reference_internal)
-        .def_static("from_array",
-                    [](const nb::ndarray<float, nb::ndim<2>, nb::c_contig>& array) {
-                        return Array2D<float>(array.data(), array.shape(0), array.shape(1));
-                    })
         .def_prop_ro("num_rows", &Array2D<float>::num_rows)
         .def_prop_ro("num_cols", &Array2D<float>::num_cols)
         .def_prop_ro("ndim", &Array2D<float>::ndim)
