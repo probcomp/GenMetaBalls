@@ -82,14 +82,6 @@ NB_MODULE(_genmetaballs_bindings, m) {
              "Get the direction of the ray going through pixel (px, py) in camera frame",
              nb::arg("px"), nb::arg("py"));
 
-    nb::class_<Camera>(camera, "Camera")
-        .def(nb::init<Intrinsics, Pose>())
-        .def_ro("intrinsics", &Camera::intrinsics)
-        .def_ro("extrinsics", &Camera::extrinsics)
-        .def("get_ray_direction", &Camera::get_ray_direction,
-             "Get the direction of the ray going through pixel (px, py) in world frame",
-             nb::arg("px"), nb::arg("py"));
-
     /*
      * Confidence module bindings
      */

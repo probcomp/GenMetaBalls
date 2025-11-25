@@ -3,7 +3,7 @@ from genmetaballs._genmetaballs_bindings.blender import (
     FourParameterBlender,
     ThreeParameterBlender,
 )
-from genmetaballs._genmetaballs_bindings.camera import Camera, Intrinsics
+from genmetaballs._genmetaballs_bindings.camera import Intrinsics
 from genmetaballs._genmetaballs_bindings.confidence import (
     TwoParameterConfidence,
     ZeroParameterConfidence,

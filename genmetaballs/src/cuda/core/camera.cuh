@@ -18,12 +18,3 @@ struct Intrinsics {
     // for efficiency, this function does not check if the pixel is within bounds
     CUDA_CALLABLE Vec3D get_ray_direction(uint32_t px, uint32_t py) const;
 };
-
-struct Camera {
-    Intrinsics intrinsics;
-    Pose extrinsics;
-
-    // returns the direction of the ray going through pixel (px, py) in world frame
-    // for efficiency, this function does not check if the pixel is within bounds
-    CUDA_CALLABLE Vec3D get_ray_direction(uint32_t px, uint32_t py) const;
-};
