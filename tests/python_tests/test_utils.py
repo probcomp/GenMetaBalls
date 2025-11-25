@@ -1,8 +1,10 @@
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pytest
 from scipy.special import expit
 
-from genmetaballs.core import FloatArray2D, sigmoid
+from genmetaballs.core import array2d_float, sigmoid
 
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
@@ -60,18 +62,39 @@ def test_sigmoid_edge_cases(x: float) -> None:
         assert actual <= 1.0
 
 
-def test_float_array2d_creation_and_view():
+@pytest.mark.parametrize("device", ["cpu", "gpu"])
+def test_array2d_float_creation_on_jax_devices(device: str):
     """Test creation of Array2D from a numpy array."""
     rows, cols = 4, 5
-    data = np.arange(rows * cols, dtype=np.float32).reshape((rows, cols))
-    array_2d = FloatArray2D.from_array(data)
+    data = jnp.arange(rows * cols, dtype=jnp.float32).reshape((rows, cols))
+    jax_device = jax.devices(device)[0]
+    data = jax.device_put(data, device=jax_device)
+    array_2d = array2d_float(data, device=device)
 
     assert array_2d.num_rows == rows
     assert array_2d.num_cols == cols
     assert array_2d.ndim == 2
 
     # then try converting back to numpy array via view
-    data_view = array_2d.numpy()
+    data_view = array_2d.as_jax()
+    assert data_view.device == data.device
+    assert jnp.allclose(data, data_view)
+
+    # Note: we can't test writability of shared view here since JAX arrays are immutable
+
+
+def test_float_array2d_view_numpy():
+    """Test creation of Array2D from a numpy array."""
+    rows, cols = 3, 4
+    data = np.arange(rows * cols, dtype=np.float32).reshape((rows, cols))
+    array_2d = array2d_float(data, device="cpu")
+
+    assert array_2d.num_rows == rows
+    assert array_2d.num_cols == cols
+    assert array_2d.ndim == 2
+
+    # then try converting back to numpy array via view
+    data_view = array_2d.as_numpy()
     assert np.allclose(data, data_view)
 
     # check that the view is writable and changes reflect back to original data
@@ -84,4 +107,4 @@ def test_create_invalid_array2d():
     data = np.arange(12, dtype=np.float32).reshape((3, 4))
 
     with pytest.raises(TypeError):
-        FloatArray2D.from_array(data.reshape((3, 4, 1)))  # not 2D
+        array2d_float(data.reshape((3, 4, 1)), device="cpu")  # not 2D
