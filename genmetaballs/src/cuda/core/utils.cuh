@@ -21,8 +21,10 @@ CUDA_CALLABLE __forceinline__ float sigmoid(float x) {
     return 1.0f / (1.0f + expf(-x));
 }
 
+enum class DeviceType { CPU, GPU };
+
 // Non-owning 2D view into a contiguous array in either host or device memory
-template <typename T>
+template <typename T, DeviceType device>
 class Array2D {
 private:
     cuda::std::mdspan<
@@ -60,10 +62,3 @@ public:
         return data_view_.data_handle();
     }
 }; // class Array2D
-
-// Type deduction guide
-// if initialized with (Pointer, int, int), deduce T by looking at what raw_pointer_cast returns
-// so we can write Array2D(array_ptr, rows, cols) instead of Array2D<Type>(array_ptr, rows, cols)
-template <typename Pointer>
-Array2D(Pointer, uint32_t, uint32_t)
-    -> Array2D<typename std::pointer_traits<Pointer>::element_type>;
