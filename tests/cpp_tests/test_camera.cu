@@ -14,7 +14,7 @@ namespace test_camera_gpu {
 // CUDA kernel to call get_ray_directions on device with multiple threads
 // Each thread processes one row of the image
 __global__ void get_ray_directions_kernel(Intrinsics intrinsics,
-                                          Array2D<Vec3D, DeviceType::GPU> ray_buffer) {
+                                          Array2D<Vec3D, MemoryLocation::DEVICE> ray_buffer) {
     uint32_t row_start = threadIdx.x * 2;
     uint32_t row_end = max(row_start + 2, intrinsics.height);
     uint32_t col_start = threadIdx.y * 2;
@@ -31,7 +31,8 @@ TEST(CameraTest, GetRayDirectionsDevice) {
 
     // Create Array2D buffer on device
     thrust::device_vector<Vec3D> data(intrinsics.height * intrinsics.width);
-    Array2D<Vec3D, DeviceType::GPU> ray_buffer(data.data(), intrinsics.height, intrinsics.width);
+    Array2D<Vec3D, MemoryLocation::DEVICE> ray_buffer(data.data(), intrinsics.height,
+                                                      intrinsics.width);
 
     // Launch kernel with multiple threads -- divide into 2x2 tiles
     test_camera_gpu::
