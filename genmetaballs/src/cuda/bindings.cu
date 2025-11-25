@@ -84,6 +84,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
     bind_array2d<float, DeviceType::CPU>(utils, "CPUFloatArray2D");
+    bind_array2d<float, DeviceType::GPU>(utils, "GPUFloatArray2D");
 
 } // NB_MODULE(_genmetaballs_bindings)
 
