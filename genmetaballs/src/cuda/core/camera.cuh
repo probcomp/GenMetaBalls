@@ -7,8 +7,8 @@
 #include "utils.cuh"
 
 struct Intrinsics {
-    uint32_t height;
-    uint32_t width;
+    uint32_t height; // in x direction
+    uint32_t width;  // in y direction
     float fx;
     float fy;
     float cx;
@@ -20,11 +20,17 @@ struct Intrinsics {
 
     // Returns a 2D array of ray directions in camera frame in the specified pixel range
     // and store them in the provided buffer. By default, the full image is used
-    // For efficiency, this function does not check if Array2D buffer has correct size
     template <DeviceType device>
     CUDA_CALLABLE Array2D<Vec3D, device>& get_ray_directions(Array2D<Vec3D, device> buffer,
                                                              uint32_t px_start = 0,
                                                              uint32_t px_end = UINT32_MAX,
                                                              uint32_t py_start = 0,
-                                                             uint32_t py_end = UINT32_MAX) const;
+                                                             uint32_t py_end = UINT32_MAX) const {
+        for (auto i = max(0, px_start); i < min(height, px_end); ++i) {
+            for (auto j = max(0, py_start); j < min(width, py_end); ++j) {
+                buffer[i][j] = get_ray_direction(j, i);
+            }
+        }
+        return buffer;
+    }
 };
