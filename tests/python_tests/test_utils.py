@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from genmetaballs.core import FloatArray2D, sigmoid
+from genmetaballs.core import CPUFloatArray2D, sigmoid
 
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
@@ -64,7 +64,7 @@ def test_float_array2d_creation_and_view():
     """Test creation of Array2D from a numpy array."""
     rows, cols = 4, 5
     data = np.arange(rows * cols, dtype=np.float32).reshape((rows, cols))
-    array_2d = FloatArray2D.from_array(data)
+    array_2d = CPUFloatArray2D.from_array(data)
 
     assert array_2d.num_rows == rows
     assert array_2d.num_cols == cols
@@ -84,4 +84,4 @@ def test_create_invalid_array2d():
     data = np.arange(12, dtype=np.float32).reshape((3, 4))
 
     with pytest.raises(TypeError):
-        FloatArray2D.from_array(data.reshape((3, 4, 1)))  # not 2D
+        CPUFloatArray2D.from_array(data.reshape((3, 4, 1)))  # not 2D

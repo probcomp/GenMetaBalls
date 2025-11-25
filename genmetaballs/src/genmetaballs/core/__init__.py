@@ -3,10 +3,10 @@ from genmetaballs._genmetaballs_bindings.confidence import (
     TwoParameterConfidence,
     ZeroParameterConfidence,
 )
-from genmetaballs._genmetaballs_bindings.utils import FloatArray2D, sigmoid
+from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, sigmoid
 
 __all__ = [
-    "FloatArray2D",
+    "CPUFloatArray2D",
     "ZeroParameterConfidence",
     "TwoParameterConfidence",
     "geometry",
