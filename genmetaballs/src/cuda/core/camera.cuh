@@ -13,8 +13,6 @@ struct Intrinsics {
     float fy;
     float cx;
     float cy;
-    float near;
-    float far;
 
     // returns the direction of the ray going through pixel (px, py) in camera frame
     // for efficiency, this function does not check if the pixel is within bounds

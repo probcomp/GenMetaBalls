@@ -5,6 +5,7 @@
 #include <nanobind/stl/vector.h>
 
 #include "core/blender.cuh"
+#include "core/camera.cuh"
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
 #include "core/utils.cuh"
@@ -65,7 +66,32 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_rw("direction", &Ray::direction);
 
     /*
-     * Confidence submodule bindings
+     * Camera module bindings
+     */
+    nb::module_ camera = m.def_submodule("camera", "Camera intrinsics and extrinsics");
+    nb::class_<Intrinsics>(camera, "Intrinsics")
+        .def(nb::init<uint32_t, uint32_t, float, float, float, float>(), nb::arg("height"),
+             nb::arg("width"), nb::arg("fx"), nb::arg("fy"), nb::arg("cx"), nb::arg("cy"))
+        .def_ro("height", &Intrinsics::height)
+        .def_ro("width", &Intrinsics::width)
+        .def_ro("fx", &Intrinsics::fx)
+        .def_ro("fy", &Intrinsics::fy)
+        .def_ro("cx", &Intrinsics::cx)
+        .def_ro("cy", &Intrinsics::cy)
+        .def("get_ray_direction", &Intrinsics::get_ray_direction,
+             "Get the direction of the ray going through pixel (px, py) in camera frame",
+             nb::arg("px"), nb::arg("py"));
+
+    nb::class_<Camera>(camera, "Camera")
+        .def(nb::init<Intrinsics, Pose>())
+        .def_ro("intrinsics", &Camera::intrinsics)
+        .def_ro("extrinsics", &Camera::extrinsics)
+        .def("get_ray_direction", &Camera::get_ray_direction,
+             "Get the direction of the ray going through pixel (px, py) in world frame",
+             nb::arg("px"), nb::arg("py"));
+
+    /*
+     * Confidence module bindings
      */
 
     nb::module_ confidence = m.def_submodule("confidence");
