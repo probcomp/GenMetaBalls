@@ -141,3 +141,12 @@ def compute_normals(camera_rays, depth_py_px, eps=1e-20):
     norms = nan_ddiff / (eps + jnp.linalg.norm(nan_ddiff, axis=1, keepdims=True))
 
     return norms
+
+
+def get_camera_rays(
+    fx: float, fy: float, cx: float, cy: float, pixel_list: np.ndarray[int]
+) -> np.ndarray[np.float32]:
+    K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float32)
+    camera_rays = (pixel_list - K[:, 2]) / np.diag(K)
+    camera_rays[:, -1] = -1
+    return camera_rays
