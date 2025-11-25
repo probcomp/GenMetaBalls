@@ -21,10 +21,10 @@ CUDA_CALLABLE __forceinline__ float sigmoid(float x) {
     return 1.0f / (1.0f + expf(-x));
 }
 
-enum class DeviceType { CPU, GPU };
+enum class MemoryLocation { HOST, DEVICE };
 
 // Non-owning 2D view into a contiguous array in either host or device memory
-template <typename T, DeviceType device>
+template <typename T, MemoryLocation location>
 class Array2D {
 private:
     cuda::std::mdspan<

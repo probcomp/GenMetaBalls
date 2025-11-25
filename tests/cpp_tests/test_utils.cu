@@ -94,7 +94,7 @@ TEST(GpuSigmoidTest, SigmoidGPUWithinBounds) {
 
 namespace test_utils_gpu {
 // CUDA kernel to fill Array2D with sequential values
-__global__ void fill_array2d_kernel(Array2D<float, DeviceType::GPU> array2d) {
+__global__ void fill_array2d_kernel(Array2D<float, MemoryLocation::DEVICE> array2d) {
     uint32_t i = threadIdx.x;
     uint32_t j = threadIdx.y;
 
@@ -120,8 +120,9 @@ TYPED_TEST(Array2DTestFixture, CreateAndAccessArray2D) {
     uint32_t cols = 6;
 
     auto data = TypeParam(rows * cols);
-    constexpr auto device_type =
-        std::is_same_v<TypeParam, thrust::device_vector<float>> ? DeviceType::GPU : DeviceType::CPU;
+    constexpr auto device_type = std::is_same_v<TypeParam, thrust::device_vector<float>>
+                                     ? MemoryLocation::DEVICE
+                                     : MemoryLocation::HOST;
     // create 2D view into the underlying data on host or device
     auto array2d = Array2D<float, device_type>(data.data(), rows, cols);
 
@@ -167,8 +168,8 @@ TYPED_TEST(Array2DTestFixture, ViewModifiesUnderlyingData) {
         uint32_t cols = 4;
         auto data = TypeParam(rows * cols, 0.0f);
         constexpr auto device_type = std::is_same_v<TypeParam, thrust::device_vector<float>>
-                                         ? DeviceType::GPU
-                                         : DeviceType::CPU;
+                                         ? MemoryLocation::DEVICE
+                                         : MemoryLocation::HOST;
         auto array2d = Array2D<float, device_type>(data.data(), rows, cols);
 
         // Modify through view
@@ -190,8 +191,8 @@ TYPED_TEST(Array2DTestFixture, MultipleViewsOfSameData) {
         uint32_t cols = 3;
         auto data = TypeParam(rows * cols, 0.0f);
         constexpr auto device_type = std::is_same_v<TypeParam, thrust::device_vector<float>>
-                                         ? DeviceType::GPU
-                                         : DeviceType::CPU;
+                                         ? MemoryLocation::DEVICE
+                                         : MemoryLocation::HOST;
         auto view1 = Array2D<float, device_type>(data.data(), rows, cols);
         auto view2 = Array2D<float, device_type>(data.data(), rows, cols);
 

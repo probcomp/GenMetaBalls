@@ -10,7 +10,7 @@
 
 namespace nb = nanobind;
 
-template <typename T, DeviceType device>
+template <typename T, MemoryLocation location>
 void bind_array2d(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
@@ -83,38 +83,38 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ utils = m.def_submodule("utils");
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
-    bind_array2d<float, DeviceType::CPU>(utils, "CPUFloatArray2D");
-    bind_array2d<float, DeviceType::GPU>(utils, "GPUFloatArray2D");
+    bind_array2d<float, MemoryLocation::HOST>(utils, "CPUFloatArray2D");
+    bind_array2d<float, MemoryLocation::DEVICE>(utils, "GPUFloatArray2D");
 
 } // NB_MODULE(_genmetaballs_bindings)
 
-template <typename T, DeviceType device>
+template <typename T, MemoryLocation location>
 void bind_array2d(nb::module_& m, const char* name) {
     using nb_device_type =
-        std::conditional_t<device == DeviceType::CPU, nb::device::cpu, nb::device::cuda>;
-    nb::class_<Array2D<T, device>>(m, name)
+        std::conditional_t<location == MemoryLocation::HOST, nb::device::cpu, nb::device::cuda>;
+    nb::class_<Array2D<T, location>>(m, name)
         .def_static("from_array",
                     [](const nb::ndarray<T, nb::ndim<2>, nb::c_contig, nb_device_type>& array) {
-                        return Array2D<T, device>(array.data(), array.shape(0), array.shape(1));
+                        return Array2D<T, location>(array.data(), array.shape(0), array.shape(1));
                     })
         // TODO: switch to the array_api in future nanobind release
         // https://nanobind.readthedocs.io/en/latest/api_extra.html#_CPPv4N8nanobind9array_apiE
         .def(
             "as_numpy",
-            [](const Array2D<T, device>& self) {
+            [](const Array2D<T, location>& self) {
                 return nb::ndarray<T, nb::numpy, nb::c_contig, nb_device_type>(
                     self.data(), {self.num_rows(), self.num_cols()});
             },
             nb::rv_policy::reference_internal)
         .def(
             "as_jax",
-            [](const Array2D<T, device>& self) {
+            [](const Array2D<T, location>& self) {
                 return nb::ndarray<T, nb::jax, nb::c_contig, nb_device_type>(
                     self.data(), {self.num_rows(), self.num_cols()});
             },
             nb::rv_policy::reference_internal)
-        .def_prop_ro("num_rows", &Array2D<T, device>::num_rows)
-        .def_prop_ro("num_cols", &Array2D<T, device>::num_cols)
-        .def_prop_ro("ndim", &Array2D<T, device>::ndim)
-        .def_prop_ro("size", &Array2D<T, device>::size);
+        .def_prop_ro("num_rows", &Array2D<T, location>::num_rows)
+        .def_prop_ro("num_cols", &Array2D<T, location>::num_cols)
+        .def_prop_ro("ndim", &Array2D<T, location>::ndim)
+        .def_prop_ro("size", &Array2D<T, location>::size);
 }
