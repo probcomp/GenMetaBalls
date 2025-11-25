@@ -72,11 +72,11 @@ public:
         return {rot, tran};
     }
 
-    CUDA_CALLABLE Rotation get_rot() const {
+    CUDA_CALLABLE const Rotation& get_rot() const {
         return rot_;
     }
 
-    CUDA_CALLABLE Vec3D get_tran() const {
+    CUDA_CALLABLE const Vec3D& get_tran() const {
         return tran_;
     }
 
