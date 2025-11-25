@@ -56,6 +56,9 @@ public:
     CUDA_CALLABLE constexpr auto size() const noexcept {
         return data_view_.size();
     }
+    CUDA_CALLABLE constexpr T* data() const noexcept {
+        return data_view_.data_handle();
+    }
 }; // class Array2D
 
 // Type deduction guide

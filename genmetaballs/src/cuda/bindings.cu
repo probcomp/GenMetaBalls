@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/vector.h>
 
@@ -78,5 +79,24 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     nb::module_ utils = m.def_submodule("utils");
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
+
+    nb::class_<Array2D<float>>(utils, "FloatArray2D")
+        .def_static("from_array",
+                    [](const nb::ndarray<float, nb::ndim<2>, nb::c_contig>& array) {
+                        return Array2D<float>(array.data(), array.shape(0), array.shape(1));
+                    })
+        // TODO: switch to the array_api in future nanobind release
+        // https://nanobind.readthedocs.io/en/latest/api_extra.html#_CPPv4N8nanobind9array_apiE
+        .def(
+            "numpy",
+            [](const Array2D<float>& self) {
+                return nb::ndarray<float, nb::numpy, nb::c_contig>(
+                    self.data(), {self.num_rows(), self.num_cols()});
+            },
+            nb::rv_policy::reference_internal)
+        .def_prop_ro("num_rows", &Array2D<float>::num_rows)
+        .def_prop_ro("num_cols", &Array2D<float>::num_cols)
+        .def_prop_ro("ndim", &Array2D<float>::ndim)
+        .def_prop_ro("size", &Array2D<float>::size);
 
 } // NB_MODULE(_genmetaballs_bindings)

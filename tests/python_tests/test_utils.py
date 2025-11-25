@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scipy.special import expit
 
-from genmetaballs.core import sigmoid
+from genmetaballs.core import FloatArray2D, sigmoid
 
 NUM_RNG_SEEDS_PER_TEST = 5
 NUM_N_VALUES_PER_TEST = 5
@@ -58,3 +58,30 @@ def test_sigmoid_edge_cases(x: float) -> None:
         assert np.isclose(actual, expected, rtol=1e-5, atol=1e-6)
         assert actual >= 0.0
         assert actual <= 1.0
+
+
+def test_float_array2d_creation_and_view():
+    """Test creation of Array2D from a numpy array."""
+    rows, cols = 4, 5
+    data = np.arange(rows * cols, dtype=np.float32).reshape((rows, cols))
+    array_2d = FloatArray2D.from_array(data)
+
+    assert array_2d.num_rows == rows
+    assert array_2d.num_cols == cols
+    assert array_2d.ndim == 2
+
+    # then try converting back to numpy array via view
+    data_view = array_2d.numpy()
+    assert np.allclose(data, data_view)
+
+    # check that the view is writable and changes reflect back to original data
+    data_view[0, 0] = 999.0
+    assert np.isclose(data[0, 0], 999.0)
+
+
+def test_create_invalid_array2d():
+    """Test that creating Array2D with invalid dimensions raises errors."""
+    data = np.arange(12, dtype=np.float32).reshape((3, 4))
+
+    with pytest.raises(TypeError):
+        FloatArray2D.from_array(data.reshape((3, 4, 1)))  # not 2D
