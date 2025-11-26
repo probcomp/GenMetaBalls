@@ -11,7 +11,7 @@ __global__ void dummy_kernel(FMBScene &scene, float *tot_extent_x) {
 
     float par_extent_x = 0;
     
-    for(auto &[fmb, w] : scene) {
+    for(auto [fmb, w] : scene) {
         par_extent_x += fmb.get_extent().x;
     }
 
