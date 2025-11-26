@@ -12,6 +12,9 @@ private:
     // In Gaussian terms:
     // - mean: pose.tran
     // - cov: pose.rot.mat().inv() * diag(extent) * pose.rot.mat()
+    // note: note how the inverse is on the left. This means that pose
+    // corresponds to the precision matrix, i.e.
+    // prec = pose.rot.mat() * diag(1/extent) * pose.rot.mat().inv()
     Pose pose_;
     float3 extent_;
 
