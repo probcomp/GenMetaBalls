@@ -62,6 +62,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
                          auto extent = self.get_extent();
                          return std::tuple{extent.x, extent.y, extent.z};
                      })
+        .def("cov_inv_apply", &FMB::cov_inv_apply,
+             "apply the inverse covariance matrix to the given vector", nb::arg("vec"))
         .def("quadratic_form", &FMB::quadratic_form,
              "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
 
@@ -146,11 +148,11 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ intersector = m.def_submodule("intersector");
     intersector.def(
         "linear_intersect",
-        [](const FMB& fmb, const Ray& ray) {
-            auto [t, d] = LinearIntersector::intersect(fmb, ray);
+        [](const FMB& fmb, const Ray& ray, const Pose& cam_pose) {
+            auto [t, d] = LinearIntersector::intersect(fmb, ray, cam_pose);
             return std::make_tuple(t, d);
         },
-        "Linear intersection of ray and FMB.", nb::arg("fmb"), nb::arg("ray"));
+        "Linear intersection of ray and FMB.", nb::arg("fmb"), nb::arg("ray"), nb::arg("cam_pose"));
 
     /*
      * Utils module bindings

@@ -33,7 +33,7 @@ __global__ render_kernel(const Getter fmb_getter, const Blender blender,
     for (const auto& [pixel_coords, ray] : pixel_coords_and_rays) {
         float w0 = 0.0f, tf = 0.0f, sumexpd = 0.0f;
         for (const auto& fmb : fmb_getter->get_metaballs(ray)) {
-            const auto& [t, d] = Intersector::intersect(fmb, ray);
+            const auto& [t, d] = Intersector::intersect(fmb, ray, extr);
             w = blender->blend(t, d, fmb, ray);
             sumexpd += exp(d); // numerically unstable. use logsumexp
             tf += t;
