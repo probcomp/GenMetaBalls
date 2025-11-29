@@ -1,4 +1,8 @@
 from genmetaballs._genmetaballs_bindings import geometry
+from genmetaballs._genmetaballs_bindings.blender import (
+    FourParameterBlender,
+    ThreeParameterBlender,
+)
 from genmetaballs._genmetaballs_bindings.confidence import (
     TwoParameterConfidence,
     ZeroParameterConfidence,
@@ -27,4 +31,6 @@ __all__ = [
     "TwoParameterConfidence",
     "geometry",
     "sigmoid",
+    "FourParameterBlender",
+    "ThreeParameterBlender",
 ]
