@@ -58,11 +58,6 @@ BLENDER_TEST_CASES = [
 ]
 
 
-def create_blender_instance(kwargs: dict) -> FourParameterBlender:
-    """Helper to instantiate FourParameterBlender with the provided parameters."""
-    return FourParameterBlender(kwargs["beta1"], kwargs["beta2"], kwargs["beta3"], kwargs["eta"])
-
-
 @pytest.mark.parametrize(
     "rng_seed", np.random.default_rng(MASTER_SEED).integers(0, 2**32, size=NUM_RNG_SEEDS_PER_TEST)
 )
@@ -70,7 +65,12 @@ def create_blender_instance(kwargs: dict) -> FourParameterBlender:
 def test_blender_single_value(rng_seed: int, blender_kwargs: dict) -> None:
     """Test that FourParameterBlender computes correct blend values for a single value."""
     rng = np.random.default_rng(rng_seed)
-    blender = create_blender_instance(blender_kwargs)
+    blender = FourParameterBlender(
+        blender_kwargs["beta1"],
+        blender_kwargs["beta2"],
+        blender_kwargs["beta3"],
+        blender_kwargs["eta"],
+    )
 
     di = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()
     ti = rng.uniform(low=0, high=10.0, size=1).astype(np.float32).item()

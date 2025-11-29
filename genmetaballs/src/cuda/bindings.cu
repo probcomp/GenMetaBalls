@@ -35,8 +35,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
         .def(nb::init<float, float>())
-        .def_rw("beta4", &TwoParameterConfidence::beta4)
-        .def_rw("beta5", &TwoParameterConfidence::beta5)
+        .def_ro("beta4", &TwoParameterConfidence::beta4)
+        .def_ro("beta5", &TwoParameterConfidence::beta5)
         .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
              "Get the confidence value for a given sumexpd")
         .def("__repr__", [](const TwoParameterConfidence& c) {
@@ -51,10 +51,10 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ blender = m.def_submodule("blender");
     nb::class_<FourParameterBlender>(blender, "FourParameterBlender")
         .def(nb::init<float, float, float, float>())
-        .def_rw("beta1", &FourParameterBlender::beta1)
-        .def_rw("beta2", &FourParameterBlender::beta2)
-        .def_rw("beta3", &FourParameterBlender::beta3)
-        .def_rw("eta", &FourParameterBlender::eta)
+        .def_ro("beta1", &FourParameterBlender::beta1)
+        .def_ro("beta2", &FourParameterBlender::beta2)
+        .def_ro("beta3", &FourParameterBlender::beta3)
+        .def_ro("eta", &FourParameterBlender::eta)
         .def("blend", &FourParameterBlender::blend, nb::arg("t"), nb::arg("d"),
              "Blend two values with (t,d)")
         .def("__repr__", [](const FourParameterBlender& b) {
@@ -64,9 +64,9 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     nb::class_<ThreeParameterBlender>(blender, "ThreeParameterBlender")
         .def(nb::init<float, float, float>())
-        .def_rw("beta1", &ThreeParameterBlender::beta1)
-        .def_rw("beta2", &ThreeParameterBlender::beta2)
-        .def_rw("eta", &ThreeParameterBlender::eta)
+        .def_ro("beta1", &ThreeParameterBlender::beta1)
+        .def_ro("beta2", &ThreeParameterBlender::beta2)
+        .def_ro("eta", &ThreeParameterBlender::eta)
         .def("blend", &ThreeParameterBlender::blend, nb::arg("t"), nb::arg("d"),
              "Blend two values with (t,d)")
         .def("__repr__", [](const ThreeParameterBlender& b) {
