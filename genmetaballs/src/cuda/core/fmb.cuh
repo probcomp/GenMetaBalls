@@ -7,7 +7,7 @@ struct FMB {
     float3 extent;
 };
 
-template <typename containter_template>
+template <template <typename> class containter_template>
 class FMBs {
 private:
     containter_template<FMB> fmbs_;
@@ -16,5 +16,11 @@ private:
 public:
     FMBs(uint32_t size) : fmbs_(size), log_weights_(size) {
         // TODO: set all log_weights_ to 0
+    }
+    CUDA_CALLABLE const containter_template<FMB>& get_all_fmbs() const {
+        return fmbs_;
+    }
+    CUDA_CALLABLE const FMB& get_fmb(uint32_t idx) const {
+        return fmbs_[idx];
     }
 };

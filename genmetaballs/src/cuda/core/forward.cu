@@ -47,7 +47,7 @@ __global__ render_kernel(const Getter fmb_getter, const Blender blender,
 template <class Getter, class Intersector, class Blender, class Confidence>
 void render_fmbs(const FMBs& fmbs, const Intrinsics& intr, const Pose& extr) {
     // initialize the fmb_getter
-    typename Getter::Getter fmb_getter(fmbs, intr, extr);
+    typename Getter::Getter fmb_getter(fmbs, extr);
     auto kernel = render_kernel<Getter, Intersector, Blender, Confidence>;
     kernel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmb_getter, fmbs, intr, extr);
 }
