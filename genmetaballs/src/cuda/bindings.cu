@@ -8,6 +8,7 @@
 #include "core/camera.cuh"
 #include "core/confidence.cuh"
 #include "core/geometry.cuh"
+#include "core/image.cuh"
 #include "core/utils.cuh"
 
 namespace nb = nanobind;
@@ -81,6 +82,36 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("get_ray_direction", &Intrinsics::get_ray_direction,
              "Get the direction of the ray going through pixel (px, py) in camera frame",
              nb::arg("px"), nb::arg("py"));
+
+    /*
+     * Image module bindings
+     * Note that only Host (CPU) version is exposed for simplicity, as the image data is usually
+     * needed for visualization only.
+     */
+    nb::module_ image = m.def_submodule("image", "Image data structure for GenMetaballs");
+    nb::class_<ImageView<MemoryLocation::HOST>>(image, "CPUImageView")
+        .def(nb::init<const Array2D<float, MemoryLocation::HOST>&,
+                      const Array2D<float, MemoryLocation::HOST>&>(),
+             nb::arg("confidence"), nb::arg("depth"))
+        .def_prop_ro("confidence",
+                     [](const ImageView<MemoryLocation::HOST>& view) { return view.confidence; })
+        .def_prop_ro("depth",
+                     [](const ImageView<MemoryLocation::HOST>& view) { return view.depth; })
+        .def_prop_ro("num_rows", &ImageView<MemoryLocation::HOST>::num_rows)
+        .def_prop_ro("num_cols", &ImageView<MemoryLocation::HOST>::num_cols)
+        .def("__repr__", [](const ImageView<MemoryLocation::HOST>& view) {
+            return nb::str("CPUImageView(height={}, width={})")
+                .format(view.num_rows(), view.num_cols());
+        });
+    nb::class_<Image<MemoryLocation::HOST>>(image, "CPUImage")
+        .def(nb::init<uint32_t, uint32_t>(), nb::arg("height"), nb::arg("width"))
+        .def_prop_ro("num_rows", &Image<MemoryLocation::HOST>::num_rows)
+        .def_prop_ro("num_cols", &Image<MemoryLocation::HOST>::num_cols)
+        .def("as_view", &Image<MemoryLocation::HOST>::as_view,
+             "Get a view of the image data as ImageView")
+        .def("__repr__", [](const Image<MemoryLocation::HOST>& img) {
+            return nb::str("CPUImage(height={}, width={})").format(img.num_rows(), img.num_cols());
+        });
 
     /*
      * Confidence module bindings
