@@ -15,6 +15,10 @@ namespace nb = nanobind;
 
 template <typename T, MemoryLocation location>
 void bind_array2d(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_image(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_image_view(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -85,33 +89,12 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     /*
      * Image module bindings
-     * Note that only Host (CPU) version is exposed for simplicity, as the image data is usually
-     * needed for visualization only.
      */
     nb::module_ image = m.def_submodule("image", "Image data structure for GenMetaballs");
-    nb::class_<ImageView<MemoryLocation::HOST>>(image, "CPUImageView")
-        .def(nb::init<const Array2D<float, MemoryLocation::HOST>&,
-                      const Array2D<float, MemoryLocation::HOST>&>(),
-             nb::arg("confidence"), nb::arg("depth"))
-        .def_prop_ro("confidence",
-                     [](const ImageView<MemoryLocation::HOST>& view) { return view.confidence; })
-        .def_prop_ro("depth",
-                     [](const ImageView<MemoryLocation::HOST>& view) { return view.depth; })
-        .def_prop_ro("num_rows", &ImageView<MemoryLocation::HOST>::num_rows)
-        .def_prop_ro("num_cols", &ImageView<MemoryLocation::HOST>::num_cols)
-        .def("__repr__", [](const ImageView<MemoryLocation::HOST>& view) {
-            return nb::str("CPUImageView(height={}, width={})")
-                .format(view.num_rows(), view.num_cols());
-        });
-    nb::class_<Image<MemoryLocation::HOST>>(image, "CPUImage")
-        .def(nb::init<uint32_t, uint32_t>(), nb::arg("height"), nb::arg("width"))
-        .def_prop_ro("num_rows", &Image<MemoryLocation::HOST>::num_rows)
-        .def_prop_ro("num_cols", &Image<MemoryLocation::HOST>::num_cols)
-        .def("as_view", &Image<MemoryLocation::HOST>::as_view,
-             "Get a view of the image data as ImageView")
-        .def("__repr__", [](const Image<MemoryLocation::HOST>& img) {
-            return nb::str("CPUImage(height={}, width={})").format(img.num_rows(), img.num_cols());
-        });
+    bind_image_view<MemoryLocation::HOST>(image, "CPUImageView");
+    bind_image<MemoryLocation::HOST>(image, "CPUImage");
+    bind_image_view<MemoryLocation::DEVICE>(image, "GPUImageView");
+    bind_image<MemoryLocation::DEVICE>(image, "GPUImage");
 
     /*
      * Confidence module bindings
@@ -202,4 +185,31 @@ void bind_array2d(nb::module_& m, const char* name) {
         .def_prop_ro("num_cols", &Array2D<T, location>::num_cols)
         .def_prop_ro("ndim", &Array2D<T, location>::ndim)
         .def_prop_ro("size", &Array2D<T, location>::size);
+}
+
+template <MemoryLocation location>
+void bind_image_view(nb::module_& m, const char* name) {
+    nb::class_<ImageView<location>>(m, name)
+        .def(nb::init<const Array2D<float, location>&, const Array2D<float, location>&>(),
+             nb::arg("confidence"), nb::arg("depth"))
+        .def_prop_ro("confidence", [](const ImageView<location>& view) { return view.confidence; })
+        .def_prop_ro("depth", [](const ImageView<location>& view) { return view.depth; })
+        .def_prop_ro("num_rows", &ImageView<location>::num_rows)
+        .def_prop_ro("num_cols", &ImageView<location>::num_cols)
+        .def("__repr__", [=](const ImageView<location>& view) {
+            return nb::str("{}(height={}, width={})")
+                .format(name, view.num_rows(), view.num_cols());
+        });
+}
+
+template <MemoryLocation location>
+void bind_image(nb::module_& m, const char* name) {
+    nb::class_<Image<location>>(m, name)
+        .def(nb::init<uint32_t, uint32_t>(), nb::arg("height"), nb::arg("width"))
+        .def_prop_ro("num_rows", &Image<location>::num_rows)
+        .def_prop_ro("num_cols", &Image<location>::num_cols)
+        .def("as_view", &Image<location>::as_view, "Get a view of the image data as ImageView")
+        .def("__repr__", [=](const Image<location>& img) {
+            return nb::str("{}(height={}, width={})").format(name, img.num_rows(), img.num_cols());
+        });
 }
