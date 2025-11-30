@@ -47,6 +47,11 @@ genmetaballs = { path = ".", editable = true }
 ruff = ">=0.8.0"
 pre-commit = ">=3.0.0"
 
+[tool.pixi.pypi-options]
+# Disable build isolation for genmetaballs to allow scikit-build to find cmake and other build tools
+# See https://github.com/scikit-build/scikit-build-core/issues/1112#issuecomment-3025463521
+no-build-isolation = ["genmetaballs"]
+
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
 pytest = "pytest"
@@ -66,6 +71,7 @@ wheel.py-api = "cp313"                             # Or your Python version
 wheel.packages = ["genmetaballs/src/genmetaballs"]
 # use a persistent build directory to speed up rebuild & testing
 build-dir = "build"
+editable.rebuild = true
 
 [dependency-groups]
 dev = ["pytest"]
