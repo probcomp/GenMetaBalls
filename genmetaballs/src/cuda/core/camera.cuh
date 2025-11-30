@@ -21,7 +21,7 @@ struct Intrinsics {
     // Returns a 2D array of ray directions in camera frame in the specified pixel range
     // and store them in the provided buffer. By default, the full image is used
     template <MemoryLocation location>
-    CUDA_CALLABLE Array2D<Vec3D, location>& get_ray_directions(Array2D<Vec3D, location> buffer,
+    CUDA_CALLABLE Array2D<Vec3D, location>& get_ray_directions(Array2D<Vec3D, location>& buffer,
                                                                uint32_t px_start = 0,
                                                                uint32_t px_end = UINT32_MAX,
                                                                uint32_t py_start = 0,
