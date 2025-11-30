@@ -75,7 +75,6 @@ static std::vector<ConfidenceCase> confidence_cases() {
 
 TEST(GpuConfidenceTest, ConfidenceMultipleValuesGPU_AllTypes) {
     using test_float = float;
-    constexpr float rtol = 1e-6F;
 
     auto sizes = confidence_test_sizes();
     std::mt19937 master_gen(MASTER_SEED);
