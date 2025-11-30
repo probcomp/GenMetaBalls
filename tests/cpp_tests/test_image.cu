@@ -1,6 +1,5 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
-#include <thrust/device_vector.h>
 
 #include "core/image.cuh"
 
@@ -39,6 +38,34 @@ TEST(TestImage, ImageCreationHost) {
         for (uint32_t c = 0; c < width; ++c) {
             EXPECT_FLOAT_EQ(img.confidence[r][c], 0.0f);
             EXPECT_FLOAT_EQ(img.depth[r][c], 0.0f);
+        }
+    }
+}
+
+TEST(TestImage, ImageManipulationOnDevice) {
+    constexpr uint32_t height = 16;
+    constexpr uint32_t width = 16;
+
+    // Create an image in device memory
+    Image<MemoryLocation::DEVICE> img_device(height, width);
+
+    // Launch kernel to manipulate image data
+    dim3 threadsPerBlock(width, height);
+    test_image_gpu::manipulate_image_kernel<<<1, threadsPerBlock>>>(img_device.as_view());
+
+    // Copy image back to host for verification
+    Image<MemoryLocation::HOST> img_host = img_device;
+    cudaDeviceSynchronize();
+    auto img = img_host.as_view();
+
+    EXPECT_EQ(img.num_rows(), height);
+    EXPECT_EQ(img.num_cols(), width);
+
+    // Verify the manipulated data
+    for (uint32_t r = 0; r < height; ++r) {
+        for (uint32_t c = 0; c < width; ++c) {
+            EXPECT_FLOAT_EQ(img.confidence[r][c], static_cast<float>(r));
+            EXPECT_FLOAT_EQ(img.depth[r][c], static_cast<float>(c));
         }
     }
 }

@@ -14,10 +14,10 @@ public:
     Array2D<float, location> confidence;
     Array2D<float, location> depth;
 
-    CUDA_CALLABLE auto num_rows() const noexcept {
+    CUDA_CALLABLE constexpr auto num_rows() const noexcept {
         return confidence.num_rows();
     }
-    CUDA_CALLABLE auto num_cols() const noexcept {
+    CUDA_CALLABLE constexpr auto num_cols() const noexcept {
         return confidence.num_cols();
     }
 };
@@ -39,8 +39,12 @@ private:
     vector_t<float> confidence_data_;
     vector_t<float> depth_data_;
 
-    uint32_t height_;
-    uint32_t width_;
+    const uint32_t height_;
+    const uint32_t width_;
+
+    // Make all Image instantiations friends so they can access each other's private members
+    template <MemoryLocation other_location>
+    friend class Image;
 
 public:
     /* Allocate the memory for a new image & default initialize with zeros
@@ -51,17 +55,22 @@ public:
         : height_(height), width_(width), confidence_data_(height * width),
           depth_data_(height * width) {}
 
+    /* Copy constructor from a Image which may reside in a different memory location */
+    template <MemoryLocation other_location>
+    __host__ Image(const Image<other_location>& other)
+        : height_(other.num_rows()), width_(other.num_cols()),
+          confidence_data_(other.confidence_data_), depth_data_(other.depth_data_) {}
+
     /* Create a view of this image which points to the internal data */
-    CUDA_CALLABLE ImageView<location> as_view() {
-        return ImageView<location>{
-            Array2D<float, location>(confidence_data_.data(), height_, width_),
-            Array2D<float, location>(depth_data_.data(), height_, width_)};
+    CUDA_CALLABLE auto as_view() {
+        return ImageView<location>{{confidence_data_.data(), height_, width_},
+                                   {depth_data_.data(), height_, width_}};
     }
 
-    CUDA_CALLABLE auto num_rows() const noexcept {
+    CUDA_CALLABLE constexpr auto num_rows() const noexcept {
         return height_;
     }
-    CUDA_CALLABLE auto num_cols() const noexcept {
+    CUDA_CALLABLE constexpr auto num_cols() const noexcept {
         return width_;
     }
 };
