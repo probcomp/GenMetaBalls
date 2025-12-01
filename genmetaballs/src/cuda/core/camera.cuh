@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <cuda/std/ranges>
+#include <cuda/std/utility>
 #include <cuda_runtime.h>
 
 #include "geometry.cuh"
@@ -33,4 +35,41 @@ struct Intrinsics {
         }
         return buffer;
     }
+};
+
+struct PixelCoordRange : public cuda::std::ranges::view_interface<PixelCoordRange> {
+    uint32_t px_start;
+    uint32_t px_end;
+    uint32_t py_start;
+    uint32_t py_end;
+
+    // the Iterator class holds the current pixel coordinates
+    struct Iterator {
+        // pixel range
+        uint32_t px_start;
+        uint32_t px_end;
+        uint32_t py_start;
+
+        // current pixel coordinates
+        uint32_t px;
+        uint32_t py;
+
+        // Returns the (px, py) coordinates of the current pixel
+        CUDA_CALLABLE cuda::std::pair<uint32_t, uint32_t> operator*() const;
+
+        // pre-increment operator that advances to the next pixel
+        CUDA_CALLABLE Iterator& operator++();
+    };
+
+    // the Sentinel class only needs to hold the stop value (i.e. final row)
+    struct Sentinel {
+        uint32_t py_end;
+
+        // stopping criterion: true if current row (py) reaches py_end
+        CUDA_CALLABLE bool operator==(const Iterator& it) const;
+    };
+
+    // range methods
+    CUDA_CALLABLE constexpr Iterator begin() const;
+    CUDA_CALLABLE constexpr Sentinel end() const;
 };

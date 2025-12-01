@@ -2,8 +2,8 @@
 #include <cuda_runtime.h>
 #include <vector>
 
-constexpr NUM_BLOCKS dim3(10); // XXX madeup
-constexpr THREADS_PER_BLOCK dim3(10);
+constexpr auto NUM_BLOCKS = dim3(10); // XXX madeup
+constexpr auto THREADS_PER_BLOCK = dim3(10);
 
 namespace FMB {
 
