@@ -30,10 +30,10 @@ CUDA_CALLABLE bool PixelCoordRange::Sentinel::operator==(const Iterator& it) con
     return it.py >= py_end;
 }
 
-CUDA_CALLABLE constexpr PixelCoordRange::Iterator PixelCoordRange::begin() const {
+CUDA_CALLABLE PixelCoordRange::Iterator PixelCoordRange::begin() const {
     return Iterator{px_start, px_end, py_start, px_start, py_start};
 }
 
-CUDA_CALLABLE constexpr PixelCoordRange::Sentinel PixelCoordRange::end() const {
+CUDA_CALLABLE PixelCoordRange::Sentinel PixelCoordRange::end() const {
     return Sentinel{py_end};
 }
