@@ -3,7 +3,6 @@
 #include <cuda/std/span>
 #include <cuda/std/tuple>
 #include <stdexcept>
-#include <tuple>
 
 #include "geometry.cuh"
 #include "utils.cuh"
