@@ -39,7 +39,7 @@ ninja = "*"
 scikit-build-core = "*"
 nanobind = "*"
 gtest = ">=1.17.0,<2"
-clang-tools = ">=18,<20"  # Includes clang-format and clang-tidy
+clang-tools = ">=18,<20" # Includes clang-format and clang-tidy
 mesalib = ">=25.0.5,<26"
 
 [tool.pixi.pypi-dependencies]
@@ -47,10 +47,15 @@ genmetaballs = { path = ".", editable = true }
 ruff = ">=0.8.0"
 pre-commit = ">=3.0.0"
 
+[tool.pixi.pypi-options]
+# Disable build isolation for genmetaballs to allow scikit-build to find cmake and other build tools
+# See https://github.com/scikit-build/scikit-build-core/issues/1112#issuecomment-3025463521
+no-build-isolation = ["genmetaballs"]
+
 [tool.pixi.tasks]
 ctest = "ctest --test-dir build"
 pytest = "pytest"
-test = { depends-on = ["ctest", "pytest"] }
+test = { depends-on = ["pytest", "ctest"] }
 # Simple lint/format/fix commands (C++/CUDA + Python)
 format = { cmd = "scripts/format.sh" }
 lint = { cmd = "scripts/lint.sh" }
@@ -66,6 +71,7 @@ wheel.py-api = "cp313"                             # Or your Python version
 wheel.packages = ["genmetaballs/src/genmetaballs"]
 # use a persistent build directory to speed up rebuild & testing
 build-dir = "build"
+editable.rebuild = true
 
 [dependency-groups]
 dev = ["pytest"]
@@ -86,17 +92,17 @@ line-ending = "auto"
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long (handled by formatter)
-    "B008",  # do not perform function calls in argument defaults
+    "E501", # line too long (handled by formatter)
+    "B008", # do not perform function calls in argument defaults
 ]
 
 [tool.ruff.lint.isort]
