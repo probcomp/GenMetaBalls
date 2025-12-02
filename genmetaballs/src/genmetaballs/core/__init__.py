@@ -1,6 +1,6 @@
 from typing import Literal
 
-from genmetaballs._genmetaballs_bindings import geometry
+from genmetaballs._genmetaballs_bindings import fmb, geometry
 from genmetaballs._genmetaballs_bindings.blender import (
     FourParameterBlender,
     ThreeParameterBlender,
@@ -51,6 +51,7 @@ __all__ = [
     "array2d_float",
     "ZeroParameterConfidence",
     "TwoParameterConfidence",
+    "fmb",
     "geometry",
     "Camera",
     "Intrinsics",
