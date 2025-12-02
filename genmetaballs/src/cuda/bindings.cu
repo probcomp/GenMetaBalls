@@ -5,15 +5,22 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
+#include "core/blender.cuh"
+#include "core/camera.cuh"
 #include "core/confidence.cuh"
 #include "core/fmb.cuh"
 #include "core/geometry.cuh"
+#include "core/image.cuh"
 #include "core/utils.cuh"
 
 namespace nb = nanobind;
 
 template <typename T, MemoryLocation location>
 void bind_array2d(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_image(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_image_view(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -83,17 +90,52 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_rw("direction", &Ray::direction);
 
     /*
+     * Camera module bindings
+     */
+    nb::module_ camera = m.def_submodule("camera", "Camera intrinsics and extrinsics");
+    nb::class_<Intrinsics>(camera, "Intrinsics")
+        .def(nb::init<uint32_t, uint32_t, float, float, float, float>(), nb::arg("height"),
+             nb::arg("width"), nb::arg("fx"), nb::arg("fy"), nb::arg("cx"), nb::arg("cy"))
+        .def_ro("height", &Intrinsics::height)
+        .def_ro("width", &Intrinsics::width)
+        .def_ro("fx", &Intrinsics::fx)
+        .def_ro("fy", &Intrinsics::fy)
+        .def_ro("cx", &Intrinsics::cx)
+        .def_ro("cy", &Intrinsics::cy)
+        .def("get_ray_direction", &Intrinsics::get_ray_direction,
+             "Get the direction of the ray going through pixel (px, py) in camera frame",
+             nb::arg("px"), nb::arg("py"));
+
+    /*
+     * Image module bindings
+     */
+    nb::module_ image = m.def_submodule("image", "Image data structure for GenMetaballs");
+    bind_image_view<MemoryLocation::HOST>(image, "CPUImageView");
+    bind_image<MemoryLocation::HOST>(image, "CPUImage");
+    bind_image_view<MemoryLocation::DEVICE>(image, "GPUImageView");
+    bind_image<MemoryLocation::DEVICE>(image, "GPUImage");
+
+    /*
      * Confidence module bindings
      */
 
     nb::module_ confidence = m.def_submodule("confidence");
     nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
         .def(nb::init<>())
-        .def("get_confidence", &ZeroParameterConfidence::get_confidence);
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
+        .def("__repr__",
+             [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
 
     nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
         .def(nb::init<float, float>())
-        .def("get_confidence", &TwoParameterConfidence::get_confidence);
+        .def_ro("beta4", &TwoParameterConfidence::beta4)
+        .def_ro("beta5", &TwoParameterConfidence::beta5)
+        .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
+        .def("__repr__", [](const TwoParameterConfidence& c) {
+            return nb::str("TwoParameterConfidence(beta4={}, beta5={})").format(c.beta4, c.beta5);
+        });
 
     /*
      * Utils module bindings
@@ -102,6 +144,32 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ utils = m.def_submodule("utils");
     utils.def("sigmoid", sigmoid, nb::arg("x"), "Compute the sigmoid function: 1 / (1 + exp(-x))");
 
+    // blender submodule
+    nb::module_ blender = m.def_submodule("blender");
+    nb::class_<FourParameterBlender>(blender, "FourParameterBlender")
+        .def(nb::init<float, float, float, float>())
+        .def_ro("beta1", &FourParameterBlender::beta1)
+        .def_ro("beta2", &FourParameterBlender::beta2)
+        .def_ro("beta3", &FourParameterBlender::beta3)
+        .def_ro("eta", &FourParameterBlender::eta)
+        .def("blend", &FourParameterBlender::blend, nb::arg("t"), nb::arg("d"),
+             "Blend two values with (t,d)")
+        .def("__repr__", [](const FourParameterBlender& b) {
+            return nb::str("FourParameterBlender(beta1={}, beta2={}, beta3={}, eta={})")
+                .format(b.beta1, b.beta2, b.beta3, b.eta);
+        });
+
+    nb::class_<ThreeParameterBlender>(blender, "ThreeParameterBlender")
+        .def(nb::init<float, float, float>())
+        .def_ro("beta1", &ThreeParameterBlender::beta1)
+        .def_ro("beta2", &ThreeParameterBlender::beta2)
+        .def_ro("eta", &ThreeParameterBlender::eta)
+        .def("blend", &ThreeParameterBlender::blend, nb::arg("t"), nb::arg("d"),
+             "Blend two values with (t,d)")
+        .def("__repr__", [](const ThreeParameterBlender& b) {
+            return nb::str("ThreeParameterBlender(beta1={}, beta2={}, eta={})")
+                .format(b.beta1, b.beta2, b.eta);
+        });
     bind_array2d<float, MemoryLocation::HOST>(utils, "CPUFloatArray2D");
     bind_array2d<float, MemoryLocation::DEVICE>(utils, "GPUFloatArray2D");
 
@@ -136,4 +204,31 @@ void bind_array2d(nb::module_& m, const char* name) {
         .def_prop_ro("num_cols", &Array2D<T, location>::num_cols)
         .def_prop_ro("ndim", &Array2D<T, location>::ndim)
         .def_prop_ro("size", &Array2D<T, location>::size);
+}
+
+template <MemoryLocation location>
+void bind_image_view(nb::module_& m, const char* name) {
+    nb::class_<ImageView<location>>(m, name)
+        .def(nb::init<const Array2D<float, location>&, const Array2D<float, location>&>(),
+             nb::arg("confidence"), nb::arg("depth"))
+        .def_prop_ro("confidence", [](const ImageView<location>& view) { return view.confidence; })
+        .def_prop_ro("depth", [](const ImageView<location>& view) { return view.depth; })
+        .def_prop_ro("num_rows", &ImageView<location>::num_rows)
+        .def_prop_ro("num_cols", &ImageView<location>::num_cols)
+        .def("__repr__", [=](const ImageView<location>& view) {
+            return nb::str("{}(height={}, width={})")
+                .format(name, view.num_rows(), view.num_cols());
+        });
+}
+
+template <MemoryLocation location>
+void bind_image(nb::module_& m, const char* name) {
+    nb::class_<Image<location>>(m, name)
+        .def(nb::init<uint32_t, uint32_t>(), nb::arg("height"), nb::arg("width"))
+        .def_prop_ro("num_rows", &Image<location>::num_rows)
+        .def_prop_ro("num_cols", &Image<location>::num_cols)
+        .def("as_view", &Image<location>::as_view, "Get a view of the image data as ImageView")
+        .def("__repr__", [=](const Image<location>& img) {
+            return nb::str("{}(height={}, width={})").format(name, img.num_rows(), img.num_cols());
+        });
 }

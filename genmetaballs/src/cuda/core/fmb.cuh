@@ -107,4 +107,10 @@ public:
     CUDA_CALLABLE ConstIterator end() const {
         return ConstIterator(fmbs_ + size_, log_weights_ + size_);
     }
+    CUDA_CALLABLE const FMB& get_fmb(uint32_t idx) const {
+        return fmbs_[idx];
+    }
+    CUDA_CALLABLE size_t size() const {
+        return size_;
+    }
 };

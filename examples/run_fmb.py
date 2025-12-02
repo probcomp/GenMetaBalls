@@ -33,7 +33,7 @@ import yaml
 from tqdm import tqdm
 
 # Import local utilities
-from genmetaballs.fmb.utils import DegradeLR, image_grid
+from genmetaballs.fmb.utils import DegradeLR, get_camera_rays, image_grid
 
 CURRENT_DIR = Path(__file__).parent
 PROJECT_ROOT = CURRENT_DIR.parent
@@ -475,14 +475,12 @@ def main():
 
     # Setup camera rays
     height, width = image_size
-    K = np.array([[focal_length, 0, cx], [0, focal_length, cy], [0, 0, 1]])
     pixel_list = (
         (np.array(np.meshgrid(np.arange(width), height - np.arange(height) - 1, [0]))[:, :, :, 0])
         .reshape((3, -1))
         .T
     )
-    camera_rays = (pixel_list - K[:, 2]) / np.diag(K)
-    camera_rays[:, -1] = -1
+    camera_rays = get_camera_rays(focal_length, focal_length, cx, cy, pixel_list)
     cameras_list = []
     for tran, quat in zip(trans, rand_quats, strict=False):
         R = transforms3d.quaternions.quat2mat(quat)
