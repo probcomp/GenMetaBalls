@@ -11,13 +11,12 @@
 #include "core/getter.cuh"
 #include "core/utils.cuh"
 
-
 TEST(AllGetterTest, AllGetterHostTest) {
     // Extract types from TypeParam (std::vector<FMB> or thrust::device_vector<FMB>)
     constexpr uint32_t num_fmbs = 40;
     FMBScene<MemoryLocation::HOST> scene(num_fmbs);
 
-    Pose extr();
+    Pose extr;
     AllGetter<MemoryLocation::HOST> getter(scene, extr);
 
     // Create test rays
@@ -49,8 +48,6 @@ TEST(AllGetterTest, AllGetterHostTest) {
             << "Returned FMBs container size must match all_fmbs size";
     }
 }
- 
-
 
 // TODO smoke test getter on device
 //__global__ void test_get_metaballs_kernel_device(const FMBScene* fmbs, const Pose* extr,
@@ -61,7 +58,7 @@ TEST(AllGetterTest, AllGetterHostTest) {
 //    out_sizes[idx] = static_cast<int>(fmbs_returned.size());
 //}
 //
-//TEST(AllGetterTest, AllGetterHostTest) {
+// TEST(AllGetterTest, AllGetterHostTest) {
 //    // Extract types from TypeParam (std::vector<FMB> or thrust::device_vector<FMB>)
 //    constexpr uint32_t num_fmbs = 40;
 //    FMBScene<MemoryLocation::HOST> host_scene(num_fmbs);
