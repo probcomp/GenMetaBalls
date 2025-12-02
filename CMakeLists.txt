@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 20)
 # Generate compile_commands.json for clang-tidy and other tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
+
 ################
 # Core Library #
 ################

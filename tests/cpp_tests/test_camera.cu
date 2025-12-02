@@ -11,15 +11,19 @@
 
 namespace test_camera_gpu {
 
-// CUDA kernel to call get_ray_directions on device with multiple threads
-// Each thread processes one row of the image
+// CUDA kernel to call get_ray_direction on device with multiple threads
+// Each thread processes one row of the image via PixelCoordRange
 __global__ void get_ray_directions_kernel(Intrinsics intrinsics,
                                           Array2D<Vec3D, MemoryLocation::DEVICE> ray_buffer) {
     uint32_t row_start = threadIdx.x * 2;
     uint32_t row_end = max(row_start + 2, intrinsics.height);
     uint32_t col_start = threadIdx.y * 2;
     uint32_t col_end = max(col_start + 2, intrinsics.width);
-    intrinsics.get_ray_directions(ray_buffer, row_start, row_end, col_start, col_end);
+    auto pixel_coords = PixelCoordRange{row_start, row_end, col_start, col_end};
+
+    for (auto [px, py] : pixel_coords) {
+        ray_buffer[px][py] = intrinsics.get_ray_direction(px, py);
+    }
 }
 
 } // namespace test_camera_gpu
