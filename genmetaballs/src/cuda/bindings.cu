@@ -4,6 +4,7 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
+#include <tuple>
 
 #include "core/blender.cuh"
 #include "core/camera.cuh"
@@ -11,6 +12,7 @@
 #include "core/fmb.cuh"
 #include "core/geometry.cuh"
 #include "core/image.cuh"
+#include "core/intersector.cuh"
 #include "core/utils.cuh"
 
 namespace nb = nanobind;
@@ -23,6 +25,28 @@ template <MemoryLocation location>
 void bind_image_view(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
+
+    /*
+     * Confidence module bindings
+     */
+
+    nb::module_ confidence = m.def_submodule("confidence");
+    nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
+        .def(nb::init<>())
+        .def("get_confidence", &ZeroParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
+        .def("__repr__",
+             [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
+
+    nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
+        .def(nb::init<float, float>())
+        .def_ro("beta4", &TwoParameterConfidence::beta4)
+        .def_ro("beta5", &TwoParameterConfidence::beta5)
+        .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
+             "Get the confidence value for a given sumexpd")
+        .def("__repr__", [](const TwoParameterConfidence& c) {
+            return nb::str("TwoParameterConfidence(beta4={}, beta5={})").format(c.beta4, c.beta5);
+        });
 
     /*
      * FMB module bindings
@@ -38,6 +62,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
                          auto extent = self.get_extent();
                          return std::tuple{extent.x, extent.y, extent.z};
                      })
+        .def("cov_inv_apply", &FMB::cov_inv_apply,
+             "apply the inverse covariance matrix to the given vector", nb::arg("vec"))
         .def("quadratic_form", &FMB::quadratic_form,
              "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
 
@@ -85,9 +111,9 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("inv", &Pose::inv, "Inverse pose");
 
     nb::class_<Ray>(geometry, "Ray")
-        .def(nb::init<>())
-        .def_rw("start", &Ray::start)
-        .def_rw("direction", &Ray::direction);
+        .def(nb::init<Vec3D, Vec3D>())
+        .def_ro("start", &Ray::start)
+        .def_ro("direction", &Ray::direction);
 
     /*
      * Camera module bindings
@@ -116,26 +142,17 @@ NB_MODULE(_genmetaballs_bindings, m) {
     bind_image<MemoryLocation::DEVICE>(image, "GPUImage");
 
     /*
-     * Confidence module bindings
+     * Intersector module bindings
      */
 
-    nb::module_ confidence = m.def_submodule("confidence");
-    nb::class_<ZeroParameterConfidence>(confidence, "ZeroParameterConfidence")
-        .def(nb::init<>())
-        .def("get_confidence", &ZeroParameterConfidence::get_confidence, nb::arg("sumexpd"),
-             "Get the confidence value for a given sumexpd")
-        .def("__repr__",
-             [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
-
-    nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
-        .def(nb::init<float, float>())
-        .def_ro("beta4", &TwoParameterConfidence::beta4)
-        .def_ro("beta5", &TwoParameterConfidence::beta5)
-        .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
-             "Get the confidence value for a given sumexpd")
-        .def("__repr__", [](const TwoParameterConfidence& c) {
-            return nb::str("TwoParameterConfidence(beta4={}, beta5={})").format(c.beta4, c.beta5);
-        });
+    nb::module_ intersector = m.def_submodule("intersector");
+    intersector.def(
+        "linear_intersect",
+        [](const FMB& fmb, const Ray& ray, const Pose& cam_pose) {
+            auto [t, d] = LinearIntersector::intersect(fmb, ray, cam_pose);
+            return std::make_tuple(t, d);
+        },
+        "Linear intersection of ray and FMB.", nb::arg("fmb"), nb::arg("ray"), nb::arg("cam_pose"));
 
     /*
      * Utils module bindings

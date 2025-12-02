@@ -1,6 +1,6 @@
 from typing import Literal
 
-from genmetaballs._genmetaballs_bindings import fmb, geometry
+from genmetaballs._genmetaballs_bindings import fmb, geometry, intersector
 from genmetaballs._genmetaballs_bindings.blender import (
     FourParameterBlender,
     ThreeParameterBlender,
@@ -55,6 +55,7 @@ __all__ = [
     "geometry",
     "Camera",
     "Intrinsics",
+    "intersector",
     "sigmoid",
     "FourParameterBlender",
     "ThreeParameterBlender",

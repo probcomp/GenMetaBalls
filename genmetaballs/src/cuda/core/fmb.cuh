@@ -12,6 +12,9 @@ private:
     // In Gaussian terms:
     // - mean: pose.tran
     // - cov: pose.rot.mat().inv() * diag(extent) * pose.rot.mat()
+    // note: note how the inverse is on the left. This means that pose
+    // corresponds to the precision matrix, i.e.
+    // prec = pose.rot.mat() * diag(1/extent) * pose.rot.mat().inv()
     Pose pose_;
     float3 extent_;
 
@@ -31,6 +34,11 @@ public:
     CUDA_CALLABLE float3 get_extent() const {
         return extent_;
     }
+    CUDA_CALLABLE float3 get_mean() const {
+        return pose_.get_tran();
+    }
+
+    CUDA_CALLABLE Vec3D cov_inv_apply(const Vec3D) const;
 
     CUDA_CALLABLE float quadratic_form(const Vec3D) const;
 };

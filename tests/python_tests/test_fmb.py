@@ -14,6 +14,19 @@ def rng() -> np.random.Generator:
     return np.random.default_rng(0)
 
 
+def test_fmb_cov_inv_apply(rng):
+    for _ in range(100):
+        quat = rng.uniform(size=4).astype(np.float32)
+        tran, extent, vec = rng.uniform(size=(3, 3)).astype(np.float32)
+        pose = Pose.from_components(Rotation.from_quat(*quat), Vec3D(*tran))
+        scipy_rot_mat = Rot.from_quat(quat).as_matrix()
+        cov = scipy_rot_mat.T @ np.diag(extent) @ scipy_rot_mat
+        theirs = np.linalg.solve(cov, vec)
+        ours = FMB(pose, *extent).cov_inv_apply(Vec3D(*vec))
+        ourvec = np.array([ours.x, ours.y, ours.z], dtype=np.float32)
+        assert np.allclose(theirs, ourvec, atol=1e-6)
+
+
 def test_fmb_quadratic_form(rng):
     for _ in range(100):
         quat = rng.uniform(size=4)
