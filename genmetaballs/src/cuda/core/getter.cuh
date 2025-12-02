@@ -9,16 +9,15 @@
 #include "utils.cuh"
 
 // This is the dummy version of getter, where all FMBs are relevant to any ray
-template <template <typename> class containter_template>
+template <MemoryLocation location>
 struct AllGetter {
-    const FMBs<containter_template>& fmbs;
-    Pose extr; // Current assumption: rays are in camera frame
+    FMBScene<location>& scene;
+    Pose& extr; // Current assumption: rays are in camera frame
 
-    CUDA_CALLABLE AllGetter(const FMBs<containter_template>& fmbs, const Pose& extr)
-        : fmbs(fmbs), extr(extr) {}
+    CUDA_CALLABLE AllGetter(FMBScene<location>& scene, Pose& extr) : scene(scene), extr(extr) {}
 
     // It does not bother using the ray, because it simply returns all FMBs
-    CUDA_CALLABLE const containter_template<FMB>& get_metaballs(const Ray& ray) const {
-        return fmbs.get_all_fmbs();
+    CUDA_CALLABLE FMBScene<location>& get_metaballs(const Ray& ray) const {
+        return scene;
     }
 };

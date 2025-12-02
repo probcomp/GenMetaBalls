@@ -18,6 +18,7 @@ Checks: >
   -readability-implicit-bool-conversion,
   -readability-avoid-const-params-in-decls,
   -readability-braces-around-statements,
+  -readability-convert-member-functions-to-static,
   -readability-isolate-declaration,
   -readability-math-missing-parentheses,
   -cppcoreguidelines-avoid-magic-numbers,
