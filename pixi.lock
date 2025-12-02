@@ -1301,7 +1301,7 @@ packages:
 - pypi: ./
   name: genmetaballs
   version: 0.0.1
-  sha256: c50308c5a3ddaff6376cebfbf9b0ea0094d49dfe0c63ac3e84ca9d7436dc1b5d
+  sha256: ff5808c9ff250150d673af4cfc9f137b1637e7baf403f844625c9c5494d9b360
   requires_dist:
   - numpy>=2.3.4,<3
   - jax[cuda12]>=0.8.0,<0.9
