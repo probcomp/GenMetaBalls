@@ -3,7 +3,7 @@ import pytest
 from scipy.spatial.distance import mahalanobis
 from scipy.spatial.transform import Rotation as Rot
 
-from genmetaballs.core import fmb, geometry
+from genmetaballs.core import fmb, geometry, make_fmb_scene
 
 FMB = fmb.FMB
 Pose, Vec3D, Rotation = geometry.Pose, geometry.Vec3D, geometry.Rotation
@@ -38,3 +38,13 @@ def test_fmb_quadratic_form(rng):
             FMB(pose, *extent).quadratic_form(Vec3D(*vec)),
             mahalanobis(vec, tran, np.linalg.inv(cov)) ** 2,
         )
+
+
+def test_fmb_scene_creation():
+    cpu_scene = make_fmb_scene(10, device="cpu")
+    assert isinstance(cpu_scene, fmb.CPUFMBScene)
+    assert cpu_scene.size == 10
+
+    gpu_scene = make_fmb_scene(20, device="gpu")
+    assert isinstance(gpu_scene, fmb.GPUFMBScene)
+    assert gpu_scene.size == 20
