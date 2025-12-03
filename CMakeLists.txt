@@ -22,6 +22,7 @@ add_library(genmetaballs_core
   genmetaballs/src/cuda/core/fmb.cu
   genmetaballs/src/cuda/core/fmb.cuh
   genmetaballs/src/cuda/core/forward.cu
+  genmetaballs/src/cuda/core/forward.cuh
   genmetaballs/src/cuda/core/geometry.cu
   genmetaballs/src/cuda/core/geometry.cuh
   genmetaballs/src/cuda/core/image.cuh
