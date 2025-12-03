@@ -11,6 +11,7 @@ from genmetaballs._genmetaballs_bindings.confidence import (
     ZeroParameterConfidence,
 )
 from genmetaballs._genmetaballs_bindings.fmb import FMB, CPUFMBScene, GPUFMBScene
+from genmetaballs._genmetaballs_bindings.forward import render_fmbs
 from genmetaballs._genmetaballs_bindings.image import CPUImage, GPUImage
 from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, GPUFloatArray2D, sigmoid
 
@@ -78,19 +79,19 @@ def make_fmb_scene_from_values(
 
 __all__ = [
     "array2d_float",
-    "ZeroParameterConfidence",
-    "TwoParameterConfidence",
     "fmb",
     "geometry",
-    "Camera",
-    "Intrinsics",
     "intersector",
+    "make_fmb_scene",
+    "make_fmb_scene_from_values",
+    "make_image",
+    "render_fmbs",
     "sigmoid",
+    "Camera",
     "FourParameterBlender",
     "FMB",
     "Intrinsics",
     "ThreeParameterBlender",
-    "make_image",
-    "make_fmb_scene",
-    "make_fmb_scene_from_values",
+    "TwoParameterConfidence",
+    "ZeroParameterConfidence",
 ]

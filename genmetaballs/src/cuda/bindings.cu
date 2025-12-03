@@ -43,7 +43,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
              [](const ZeroParameterConfidence& c) { return nb::str("ZeroParameterConfidence()"); });
 
     nb::class_<TwoParameterConfidence>(confidence, "TwoParameterConfidence")
-        .def(nb::init<float, float>())
+        .def(nb::init<float, float>(), nb::arg("beta4"), nb::arg("beta5"))
         .def_ro("beta4", &TwoParameterConfidence::beta4)
         .def_ro("beta5", &TwoParameterConfidence::beta5)
         .def("get_confidence", &TwoParameterConfidence::get_confidence, nb::arg("sumexpd"),
@@ -81,7 +81,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
     // Getter/Intersector/Blender/Confidence at runtime
     forward.def("render_fmbs",
                 &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector,
-                             FourParameterBlender, TwoParameterConfidence>,
+                             ThreeParameterBlender, TwoParameterConfidence>,
                 "Render FMBs using FourParameterBlender and TwoParameterConfidence",
                 nb::arg("fmbs"), nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"),
                 nb::arg("extr"), nb::arg("img"));
@@ -178,7 +178,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
     // blender submodule
     nb::module_ blender = m.def_submodule("blender");
     nb::class_<FourParameterBlender>(blender, "FourParameterBlender")
-        .def(nb::init<float, float, float, float>())
+        .def(nb::init<float, float, float, float>(), nb::arg("beta1"), nb::arg("beta2"),
+             nb::arg("beta3"), nb::arg("eta"))
         .def_ro("beta1", &FourParameterBlender::beta1)
         .def_ro("beta2", &FourParameterBlender::beta2)
         .def_ro("beta3", &FourParameterBlender::beta3)
@@ -191,7 +192,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
         });
 
     nb::class_<ThreeParameterBlender>(blender, "ThreeParameterBlender")
-        .def(nb::init<float, float, float>())
+        .def(nb::init<float, float, float>(), nb::arg("beta1"), nb::arg("beta2"), nb::arg("eta"))
         .def_ro("beta1", &ThreeParameterBlender::beta1)
         .def_ro("beta2", &ThreeParameterBlender::beta2)
         .def_ro("eta", &ThreeParameterBlender::eta)
