@@ -1,55 +1,20 @@
 #include <cstdint>
 #include <cuda_runtime.h>
-#include <vector>
 
-constexpr auto NUM_BLOCKS = dim3(10); // XXX madeup
-constexpr auto THREADS_PER_BLOCK = dim3(10);
+#include "camera.cuh"
+#include "forward.cuh"
+#include "utils.cuh"
 
-namespace FMB {
-
-CUDA_CALLABLE std::vector<std::pair<PixelCoord, Ray>> get_pixel_coords_and_rays(
-    const dim3 thread_idx, const dim3 block_idx) {
-    std::vector<std::pair<PixelCoord, Ray>> res;
-
-    uint32_t i_beg = 0; // XXX TODO
-    uint32_t i_end = 0; // XXX TODO
-
-    for (int i = i_beg; i < i_end; i += blockDim.x) {
-        //...
-    }
-
-    return res;
+CUDA_CALLABLE PixelCoordRange get_pixel_coords(const dim3 thread_idx, const dim3 block_idx,
+                                               const dim3 block_dim, const dim3 grid_dim,
+                                               const Intrinsics& intr) {
+    // compute the number of pixels each thread should process
+    const auto num_pixels_x = int_ceil_div(intr.height, grid_dim.x * block_dim.x);
+    const auto num_pixels_y = int_ceil_div(intr.width, grid_dim.y * block_dim.y);
+    const auto start_x = (block_idx.x * block_dim.x + thread_idx.x) * num_pixels_x;
+    const auto start_y = (block_idx.y * block_dim.y + thread_idx.y) * num_pixels_y;
+    return PixelCoordRange{.px_start = start_x,
+                           .px_end = min(start_x + num_pixels_x, intr.height),
+                           .py_start = start_y,
+                           .py_end = min(start_y + num_pixels_y, intr.width)};
 }
-
-template <class Getter, class Intersector, class Blender, class Confidence>
-__global__ render_kernel(const Getter fmb_getter, const Blender blender,
-                         Confidence const* confidence, Intrinsics const* intr, Pose const* extr,
-                         Image* img) {
-    // TODO how to find the relevant chunk of computation from threadIdx,
-    // blockIdx, etc
-    auto pixel_coords_and_rays =
-        get_pixel_coords_and_rays(threadIdx, blockIdx, blockDim, gridDim, intr, extr);
-
-    for (const auto& [pixel_coords, ray] : pixel_coords_and_rays) {
-        float w0 = 0.0f, tf = 0.0f, sumexpd = 0.0f;
-        for (const auto& fmb : fmb_getter->get_metaballs(ray)) {
-            const auto& [t, d] = Intersector::intersect(fmb, ray, extr);
-            w = blender->blend(t, d, fmb, ray);
-            sumexpd += exp(d); // numerically unstable. use logsumexp
-            tf += t;
-            w0 += w;
-        }
-        img->confidence.at(pixel_coords) = confidence->get_confidence(sumexpd);
-        img->depth.at(pixel_coords) = tf / w0;
-    }
-}
-
-template <class Getter, class Intersector, class Blender, class Confidence>
-void render_fmbs(const FMBs& fmbs, const Intrinsics& intr, const Pose& extr) {
-    // initialize the fmb_getter
-    typename Getter::Getter fmb_getter(fmbs, extr);
-    auto kernel = render_kernel<Getter, Intersector, Blender, Confidence>;
-    kernel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmb_getter, fmbs, intr, extr);
-}
-
-}; // namespace FMB

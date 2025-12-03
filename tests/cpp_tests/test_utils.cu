@@ -207,3 +207,10 @@ TYPED_TEST(Array2DTestFixture, MultipleViewsOfSameData) {
         EXPECT_FLOAT_EQ(view1[1][2], 200.0f);
     }
 }
+
+TEST(CeilDivTests, TestBasicCeillDivCorrectness) {
+    EXPECT_EQ(int_ceil_div(10, 3), 4);
+    EXPECT_EQ(int_ceil_div(9, 3), 3);
+    EXPECT_EQ(int_ceil_div(0, 5), 0);
+    EXPECT_EQ(int_ceil_div(1, 1), 1);
+};

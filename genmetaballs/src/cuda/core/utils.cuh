@@ -21,6 +21,12 @@ CUDA_CALLABLE __forceinline__ float sigmoid(float x) {
     return 1.0f / (1.0f + expf(-x));
 }
 
+// Integer ceiling division
+template <typename T>
+CUDA_CALLABLE constexpr T int_ceil_div(T a, T b) {
+    return (a + b - 1) / b;
+}
+
 enum class MemoryLocation { HOST, DEVICE };
 
 // Non-owning 2D view into a contiguous array in either host or device memory
