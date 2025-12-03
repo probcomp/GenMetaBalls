@@ -110,11 +110,6 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("compose", &Pose::compose, "Compose with another pose", nb::arg("pose"))
         .def("inv", &Pose::inv, "Inverse pose");
 
-    nb::class_<Ray>(geometry, "Ray")
-        .def(nb::init<Vec3D, Vec3D>())
-        .def_ro("start", &Ray::start)
-        .def_ro("direction", &Ray::direction);
-
     /*
      * Camera module bindings
      */

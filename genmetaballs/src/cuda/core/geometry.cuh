@@ -98,10 +98,3 @@ public:
         return {rotinv, -rotinv.apply(tran_)};
     }
 };
-
-struct Ray {
-    Vec3D start;
-    Vec3D direction;
-
-    CUDA_CALLABLE Ray(const Vec3D _start, const Vec3D _dir) : start{_start}, direction{_dir} {}
-};
