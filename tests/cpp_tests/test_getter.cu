@@ -19,17 +19,11 @@ TEST(AllGetterTest, AllGetterHostTest) {
     AllGetter<MemoryLocation::HOST> getter(scene, extr);
 
     // Create test rays
-    std::vector<Ray> rays = {
-        Ray{Vec3D{0.0f, 0.0f, 0.0f}, Vec3D{1.0f, 0.0f, 0.0f}},
-        Ray{Vec3D{1.0f, 1.0f, 1.0f}, Vec3D{0.0f, 1.0f, 0.0f}},
-        Ray{Vec3D{-1.0f, -1.0f, -1.0f}, Vec3D{0.0f, 0.0f, 1.0f}},
-        Ray{Vec3D{2.5f, -3.1f, 0.2f}, Vec3D{-0.5f, 0.6f, 0.0f}},
-        Ray{Vec3D{4.4f, 0.0f, -0.9f}, Vec3D{0.3f, -0.2f, 1.0f}},
-        Ray{Vec3D{5.0f, 2.2f, 1.1f}, Vec3D{-1.0f, 2.0f, 0.2f}},
-        Ray{Vec3D{0.0f, 7.0f, 6.0f}, Vec3D{0.0f, -1.0f, -1.0f}},
-        Ray{Vec3D{-2.0f, 0.0f, 0.0f}, Vec3D{0.2f, 1.1f, 0.7f}},
-        Ray{Vec3D{9.1f, -0.3f, 2.7f}, Vec3D{-0.3f, 0.1f, 0.0f}},
-        Ray{Vec3D{1.2f, 8.8f, -4.5f}, Vec3D{1.0f, 0.0f, 1.0f}},
+    std::vector<Vec3D> rays = {
+        Vec3D{0.0f, 0.0f, 0.0f},  Vec3D{1.0f, 1.0f, 1.0f},  Vec3D{-1.0f, -1.0f, -1.0f},
+        Vec3D{2.5f, -3.1f, 0.2f}, Vec3D{4.4f, 0.0f, -0.9f}, Vec3D{5.0f, 2.2f, 1.1f},
+        Vec3D{0.0f, 7.0f, 6.0f},  Vec3D{-2.0f, 0.0f, 0.0f}, Vec3D{9.1f, -0.3f, 2.7f},
+        Vec3D{1.2f, 8.8f, -4.5f},
     };
 
     // Get reference to all FMBs from the original FMBs object
@@ -49,7 +43,7 @@ TEST(AllGetterTest, AllGetterHostTest) {
 }
 
 __global__ void test_get_metaballs_kernel_device(const AllGetter<MemoryLocation::DEVICE> fmb_getter,
-                                                 const Ray* rays, int num_rays, int* out_sizes) {
+                                                 const Vec3D* rays, int num_rays, int* out_sizes) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     const auto& fmbs_returned = fmb_getter.get_metaballs(rays[idx]);
     out_sizes[idx] = static_cast<int>(fmbs_returned.size());
@@ -63,17 +57,11 @@ TEST(AllGetterTest, AllGetterDeviceTest) {
     AllGetter<MemoryLocation::DEVICE> getter(device_scene, extr);
 
     // Create test rays
-    std::vector<Ray> rays = {
-        Ray{Vec3D{0.0f, 0.0f, 0.0f}, Vec3D{1.0f, 0.0f, 0.0f}},
-        Ray{Vec3D{1.0f, 1.0f, 1.0f}, Vec3D{0.0f, 1.0f, 0.0f}},
-        Ray{Vec3D{-1.0f, -1.0f, -1.0f}, Vec3D{0.0f, 0.0f, 1.0f}},
-        Ray{Vec3D{2.5f, -3.1f, 0.2f}, Vec3D{-0.5f, 0.6f, 0.0f}},
-        Ray{Vec3D{4.4f, 0.0f, -0.9f}, Vec3D{0.3f, -0.2f, 1.0f}},
-        Ray{Vec3D{5.0f, 2.2f, 1.1f}, Vec3D{-1.0f, 2.0f, 0.2f}},
-        Ray{Vec3D{0.0f, 7.0f, 6.0f}, Vec3D{0.0f, -1.0f, -1.0f}},
-        Ray{Vec3D{-2.0f, 0.0f, 0.0f}, Vec3D{0.2f, 1.1f, 0.7f}},
-        Ray{Vec3D{9.1f, -0.3f, 2.7f}, Vec3D{-0.3f, 0.1f, 0.0f}},
-        Ray{Vec3D{1.2f, 8.8f, -4.5f}, Vec3D{1.0f, 0.0f, 1.0f}},
+    std::vector<Vec3D> rays = {
+        Vec3D{0.0f, 0.0f, 0.0f},  Vec3D{1.0f, 1.0f, 1.0f},  Vec3D{-1.0f, -1.0f, -1.0f},
+        Vec3D{2.5f, -3.1f, 0.2f}, Vec3D{4.4f, 0.0f, -0.9f}, Vec3D{5.0f, 2.2f, 1.1f},
+        Vec3D{0.0f, 7.0f, 6.0f},  Vec3D{-2.0f, 0.0f, 0.0f}, Vec3D{9.1f, -0.3f, 2.7f},
+        Vec3D{1.2f, 8.8f, -4.5f},
     };
 
     // Test on GPU for device containers
