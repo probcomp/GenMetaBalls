@@ -148,7 +148,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ intersector = m.def_submodule("intersector");
     intersector.def(
         "linear_intersect",
-        [](const FMB& fmb, const Ray& ray, const Pose& cam_pose) {
+        [](const FMB& fmb, const Vec3D& ray, const Pose& cam_pose) {
             auto [t, d] = LinearIntersector::intersect(fmb, ray, cam_pose);
             return std::make_tuple(t, d);
         },
