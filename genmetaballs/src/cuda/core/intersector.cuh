@@ -4,6 +4,7 @@
 
 #include "fmb.cuh"
 #include "geometry.cuh"
+#include "utils.cuh"
 
 // implement equation (6) in the paper
 class LinearIntersector {

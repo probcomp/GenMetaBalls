@@ -64,6 +64,11 @@ nanobind_add_module(
 # Link the core library to the bindings module
 target_link_libraries(_genmetaballs_bindings PRIVATE genmetaballs_core)
 
+# Enable CUDA separable compilation for device code linking
+set_target_properties(_genmetaballs_bindings PROPERTIES
+  CUDA_SEPARABLE_COMPILATION ON
+)
+
 # Install the extension into the Python package directory
 install(TARGETS _genmetaballs_bindings LIBRARY DESTINATION genmetaballs)
 

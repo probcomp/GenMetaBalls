@@ -10,7 +10,9 @@
 #include "core/camera.cuh"
 #include "core/confidence.cuh"
 #include "core/fmb.cuh"
+#include "core/forward.cuh"
 #include "core/geometry.cuh"
+#include "core/getter.cuh"
 #include "core/image.cuh"
 #include "core/intersector.cuh"
 #include "core/utils.cuh"
@@ -70,6 +72,19 @@ NB_MODULE(_genmetaballs_bindings, m) {
              "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
     bind_fmb_scene<MemoryLocation::HOST>(fmb, "CPUFMBScene");
     bind_fmb_scene<MemoryLocation::DEVICE>(fmb, "GPUFMBScene");
+
+    /*
+     * Forward (rendering) module bindings
+     */
+    nb::module_ forward = m.def_submodule("forward", "Forward rendering of FMBs");
+    // TODO: turn this into a template function to allow different combinations of
+    // Getter/Intersector/Blender/Confidence at runtime
+    forward.def("render_fmbs",
+                &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector,
+                             FourParameterBlender, TwoParameterConfidence>,
+                "Render FMBs using FourParameterBlender and TwoParameterConfidence",
+                nb::arg("fmbs"), nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"),
+                nb::arg("extr"), nb::arg("img"));
 
     /*
      * Geometry module bindings
