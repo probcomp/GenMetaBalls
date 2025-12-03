@@ -6,7 +6,7 @@ from scipy.spatial.transform import Rotation as Rot
 from genmetaballs.core import fmb, geometry, intersector
 
 FMB = fmb.FMB
-Pose, Vec3D, Rotation, Ray = geometry.Pose, geometry.Vec3D, geometry.Rotation, geometry.Ray
+Pose, Vec3D, Rotation = geometry.Pose, geometry.Vec3D, geometry.Rotation
 
 
 @pytest.fixture
@@ -20,7 +20,6 @@ def test_linear_intersect(rng):
         cam_quat, fmb_quat = rng.uniform(size=(2, 4)).astype(np.float32)
         fmb_extent, fmb_mu = rng.uniform(size=(2, 3)).astype(np.float32)
         cam_tran, ray_dir = rng.uniform(size=(2, 3)).astype(np.float32)
-        ray_start = np.zeros(3, dtype=np.float32)  # in camera frame
         # ground truth computation
         v = Rot.from_quat(cam_quat).apply(ray_dir)
         fmb_rotmat = Rot.from_quat(fmb_quat).as_matrix()
@@ -31,6 +30,6 @@ def test_linear_intersect(rng):
         fmb_pose = Pose.from_components(Rotation.from_quat(*fmb_quat), Vec3D(*fmb_mu))
         cam_pose = Pose.from_components(Rotation.from_quat(*cam_quat), Vec3D(*cam_tran))
         fmb = FMB(fmb_pose, *fmb_extent)
-        ray = Ray(Vec3D(*ray_start), Vec3D(*ray_dir))
+        ray = Vec3D(*ray_dir)
         t_, d_ = intersector.linear_intersect(fmb, ray, cam_pose)
         assert np.isclose(t, t_) and np.isclose(d, d_)

@@ -110,11 +110,6 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("compose", &Pose::compose, "Compose with another pose", nb::arg("pose"))
         .def("inv", &Pose::inv, "Inverse pose");
 
-    nb::class_<Ray>(geometry, "Ray")
-        .def(nb::init<Vec3D, Vec3D>())
-        .def_ro("start", &Ray::start)
-        .def_ro("direction", &Ray::direction);
-
     /*
      * Camera module bindings
      */
@@ -148,7 +143,7 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::module_ intersector = m.def_submodule("intersector");
     intersector.def(
         "linear_intersect",
-        [](const FMB& fmb, const Ray& ray, const Pose& cam_pose) {
+        [](const FMB& fmb, const Vec3D& ray, const Pose& cam_pose) {
             auto [t, d] = LinearIntersector::intersect(fmb, ray, cam_pose);
             return std::make_tuple(t, d);
         },
