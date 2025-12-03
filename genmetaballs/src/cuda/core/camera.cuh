@@ -20,6 +20,8 @@ struct Intrinsics {
     CUDA_CALLABLE Vec3D get_ray_direction(uint32_t px, uint32_t py) const;
 };
 
+using PixelCoord = cuda::std::pair<uint32_t, uint32_t>;
+
 struct PixelCoordRange {
     uint32_t px_start;
     uint32_t px_end;
@@ -38,7 +40,7 @@ struct PixelCoordRange {
         uint32_t py;
 
         // Returns the (px, py) coordinates of the current pixel
-        CUDA_CALLABLE cuda::std::pair<uint32_t, uint32_t> operator*() const;
+        CUDA_CALLABLE PixelCoord operator*() const;
 
         // pre-increment operator that advances to the next pixel
         CUDA_CALLABLE Iterator& operator++();

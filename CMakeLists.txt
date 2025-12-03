@@ -18,15 +18,16 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
 add_library(genmetaballs_core
   genmetaballs/src/cuda/core/camera.cu
   genmetaballs/src/cuda/core/camera.cuh
-  genmetaballs/src/cuda/core/utils.cu
-  genmetaballs/src/cuda/core/utils.cuh
-  genmetaballs/src/cuda/core/fmb.cuh
-  genmetaballs/src/cuda/core/fmb.cu
-  genmetaballs/src/cuda/core/geometry.cuh
-  genmetaballs/src/cuda/core/geometry.cu
   genmetaballs/src/cuda/core/confidence.cuh
+  genmetaballs/src/cuda/core/fmb.cu
+  genmetaballs/src/cuda/core/fmb.cuh
+  genmetaballs/src/cuda/core/forward.cu
+  genmetaballs/src/cuda/core/geometry.cu
+  genmetaballs/src/cuda/core/geometry.cuh
   genmetaballs/src/cuda/core/image.cuh
   genmetaballs/src/cuda/core/intersector.cuh
+  genmetaballs/src/cuda/core/utils.cu
+  genmetaballs/src/cuda/core/utils.cuh
 )
 
 # Set include directories for the core library
