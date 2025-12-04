@@ -23,6 +23,8 @@ template <MemoryLocation location>
 void bind_image(nb::module_& m, const char* name);
 template <MemoryLocation location>
 void bind_image_view(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_fmb_scene(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -66,6 +68,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
              "apply the inverse covariance matrix to the given vector", nb::arg("vec"))
         .def("quadratic_form", &FMB::quadratic_form,
              "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
+    bind_fmb_scene<MemoryLocation::HOST>(fmb, "CPUFMBScene");
+    bind_fmb_scene<MemoryLocation::DEVICE>(fmb, "GPUFMBScene");
 
     /*
      * Geometry module bindings
@@ -242,5 +246,18 @@ void bind_image(nb::module_& m, const char* name) {
         .def("as_view", &Image<location>::as_view, "Get a view of the image data as ImageView")
         .def("__repr__", [=](const Image<location>& img) {
             return nb::str("{}(height={}, width={})").format(name, img.num_rows(), img.num_cols());
+        });
+}
+
+template <MemoryLocation location>
+void bind_fmb_scene(nb::module_& m, const char* name) {
+    nb::class_<FMBScene<location>>(m, name)
+        .def(nb::init<size_t>(), nb::arg("size"))
+        .def_prop_ro("size", &FMBScene<location>::size)
+        .def("__len__", &FMBScene<location>::size)
+        .def("__getitem__", &FMBScene<location>::get_fmb, nb::arg("idx"),
+             "Get the (FMB, log_weight) tuple at index i")
+        .def("__repr__", [=](const FMBScene<location>& scene) {
+            return nb::str("{}(size={})").format(name, scene.size());
         });
 }
