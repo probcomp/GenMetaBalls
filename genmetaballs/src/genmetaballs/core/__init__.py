@@ -1,6 +1,6 @@
 from typing import Literal
 
-from genmetaballs._genmetaballs_bindings import fmb, geometry, intersector
+from genmetaballs._genmetaballs_bindings import fmb, forward, geometry, intersector
 from genmetaballs._genmetaballs_bindings.blender import (
     FourParameterBlender,
     ThreeParameterBlender,
@@ -11,7 +11,6 @@ from genmetaballs._genmetaballs_bindings.confidence import (
     ZeroParameterConfidence,
 )
 from genmetaballs._genmetaballs_bindings.fmb import FMB, CPUFMBScene, GPUFMBScene
-from genmetaballs._genmetaballs_bindings.forward import render_fmbs
 from genmetaballs._genmetaballs_bindings.image import CPUImage, GPUImage
 from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, GPUFloatArray2D, sigmoid
 
@@ -75,6 +74,39 @@ def make_fmb_scene_from_values(
         return GPUFMBScene(fmbs, log_weights)
     else:
         raise ValueError(f"Unsupported device type: {device}")
+
+
+def render_fmbs(
+    fmbs: GPUFMBScene,
+    blender: FourParameterBlender | ThreeParameterBlender,
+    confidence: TwoParameterConfidence | ZeroParameterConfidence,
+    intr: Intrinsics,
+    extr: geometry.Pose,
+    img: GPUImage | None = None,
+) -> GPUImage:
+    """Render the given FMB scene into the provided image view.
+
+    If no image is provided, a new image with the dimensions specified by the intrinsics
+    will be created.
+    """
+    if img is None:
+        img = make_image(intr.height, intr.width, device="gpu")
+
+    if isinstance(blender, FourParameterBlender):
+        if isinstance(confidence, ZeroParameterConfidence):
+            render_func = forward.render_fmbs_four_param_zero_confidence
+        elif isinstance(confidence, TwoParameterConfidence):
+            render_func = forward.render_fmbs_four_param_two_confidence
+    elif isinstance(blender, ThreeParameterBlender):
+        if isinstance(confidence, ZeroParameterConfidence):
+            render_func = forward.render_fmbs_three_param_zero_confidence
+        elif isinstance(confidence, TwoParameterConfidence):
+            render_func = forward.render_fmbs_three_param_two_confidence
+    else:
+        raise TypeError("Unsupported blender and confidence combination.")
+
+    render_func(fmbs, blender, confidence, intr, extr, img.as_view())
+    return img
 
 
 __all__ = [

@@ -27,6 +27,8 @@ template <MemoryLocation location>
 void bind_image_view(nb::module_& m, const char* name);
 template <MemoryLocation location>
 void bind_fmb_scene(nb::module_& m, const char* name);
+template <typename Blender, typename Confidence>
+void bind_render_fmbs(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -77,14 +79,14 @@ NB_MODULE(_genmetaballs_bindings, m) {
      * Forward (rendering) module bindings
      */
     nb::module_ forward = m.def_submodule("forward", "Forward rendering of FMBs");
-    // TODO: turn this into a template function to allow different combinations of
-    // Getter/Intersector/Blender/Confidence at runtime
-    forward.def("render_fmbs",
-                &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector,
-                             ThreeParameterBlender, TwoParameterConfidence>,
-                "Render FMBs using FourParameterBlender and TwoParameterConfidence",
-                nb::arg("fmbs"), nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"),
-                nb::arg("extr"), nb::arg("img"));
+    bind_render_fmbs<FourParameterBlender, ZeroParameterConfidence>(
+        forward, "render_fmbs_four_param_zero_confidence");
+    bind_render_fmbs<ThreeParameterBlender, TwoParameterConfidence>(
+        forward, "render_fmbs_three_param_two_confidence");
+    bind_render_fmbs<ThreeParameterBlender, ZeroParameterConfidence>(
+        forward, "render_fmbs_three_param_zero_confidence");
+    bind_render_fmbs<FourParameterBlender, TwoParameterConfidence>(
+        forward, "render_fmbs_four_param_two_confidence");
 
     /*
      * Geometry module bindings
@@ -288,4 +290,13 @@ void bind_fmb_scene(nb::module_& m, const char* name) {
         .def("__repr__", [=](const FMBScene<location>& scene) {
             return nb::str("{}(size={})").format(name, scene.size());
         });
+}
+
+template <typename Blender, typename Confidence>
+void bind_render_fmbs(nb::module_& m, const char* name) {
+    m.def(name,
+          &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>,
+          "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
+          nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"),
+          nb::arg("img"));
 }
