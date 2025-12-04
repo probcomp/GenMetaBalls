@@ -40,3 +40,5 @@ def test_render_fmbs_smoke(blender, confidence) -> None:
 
     assert img_view.num_rows == camera.height
     assert img_view.num_cols == camera.width
+    depth_image = img_view.depth.as_jax()
+    assert isinstance(depth_image, jnp.ndarray)
