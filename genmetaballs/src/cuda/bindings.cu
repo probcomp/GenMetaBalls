@@ -254,6 +254,7 @@ void bind_fmb_scene(nb::module_& m, const char* name) {
     nb::class_<FMBScene<location>>(m, name)
         .def(nb::init<size_t>(), nb::arg("size"))
         .def_prop_ro("size", &FMBScene<location>::size)
+        .def("__len__", &FMBScene<location>::size)
         .def("__getitem__", &FMBScene<location>::get_fmb, nb::arg("idx"),
              "Get the (FMB, log_weight) tuple at index i")
         .def("__repr__", [=](const FMBScene<location>& scene) {

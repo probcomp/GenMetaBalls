@@ -43,8 +43,8 @@ def test_fmb_quadratic_form(rng):
 def test_fmb_scene_creation():
     cpu_scene = make_fmb_scene(10, device="cpu")
     assert isinstance(cpu_scene, fmb.CPUFMBScene)
-    assert cpu_scene.size == 10
+    assert len(cpu_scene) == 10
 
     gpu_scene = make_fmb_scene(20, device="gpu")
     assert isinstance(gpu_scene, fmb.GPUFMBScene)
-    assert gpu_scene.size == 20
+    assert len(gpu_scene) == 20
