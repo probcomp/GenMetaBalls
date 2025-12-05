@@ -384,6 +384,10 @@ def main():
         ref_colors.append(color)
         ref_depths.append(target_depth)
 
+        for node in list(scene.light_nodes):
+            scene.remove_node(node)
+        for node in list(scene.camera_nodes):
+            scene.remove_node(node)
         r.delete()
 
     render_time = (time.perf_counter() - render_start) * 1000
