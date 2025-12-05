@@ -64,6 +64,15 @@ private:
 public:
     __host__ FMBScene(size_t size) : size_{size}, fmbs_(size), log_weights_(size) {};
 
+    // Copy constructor from std::vector
+    // This enables easy construction from Python side
+    __host__ FMBScene<location>(const std::vector<FMB>& fmbs, const std::vector<float>& log_weights)
+        : size_{fmbs.size()}, fmbs_(fmbs.begin(), fmbs.end()),
+          log_weights_(log_weights.begin(), log_weights.end()) {
+        if (fmbs.size() != log_weights.size()) {
+            throw std::invalid_argument(
+                "FMBScene constructor: fmbs and log_weights must have the same size");
+        }
     }
 
     CUDA_CALLABLE auto operator[](const uint32_t i) {

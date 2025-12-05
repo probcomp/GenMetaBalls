@@ -253,6 +253,9 @@ template <MemoryLocation location>
 void bind_fmb_scene(nb::module_& m, const char* name) {
     nb::class_<FMBScene<location>>(m, name)
         .def(nb::init<size_t>(), nb::arg("size"))
+        .def(nb::init<const std::vector<FMB>&, const std::vector<float>&>(), nb::arg("fmbs"),
+             nb::arg("log_weights"),
+             "Construct FMBScene from a list of FMBs and corresponding log weights")
         .def_prop_ro("size", &FMBScene<location>::size)
         .def("__len__", &FMBScene<location>::size)
         .def("__getitem__", &FMBScene<location>::get_fmb, nb::arg("idx"),
