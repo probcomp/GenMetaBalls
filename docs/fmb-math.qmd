@@ -1,0 +1,190 @@
+\newcommand{\L}{\mathcal{L}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\SE}{\mathrm{SE}}
+\newcommand{\argmax}{\operatorname*{argmax}}
+
+# Mathematical Description of Fuzzy Metaball Rendering
+
+## Notation
+
+$\N_n$ denotes the set $\{1, 2, \ldots, n\}$. $\SE(d)$ denotes the group of
+$d$-dimensional rigid transformations (hence $\SE(3)$ is the group of poses).
+$S^d$ denotes the $d$-dimensional sphere, i.e. the set of $d + 1$ dimensional
+unit vectors.
+
+The notation $\mathrm{symbol} := \mathrm{expression}$ offers the definition of "symbol" in terms of the "expression."
+
+Greek letters are unknowns, Latin letters are known
+
+Writing $(\tau, \rho) := \pi $ for $\pi \in \SE(3)$ means that $\pi$'s translational
+component is $\tau$ and it's rotational component is $\rho$. For $v \in \R^d$
+we write $\pi\cdot v$ to denote $v$ transformed by $\pi$.
+
+| Symbol | Type | Meaning |
+|:------:|:----:|:--------|
+| $N$    | $\N$ | number of fuzzy metaballs |
+| $T$    | $\N$ | number of time steps (frames) |
+| $H$    | $\N$ | height of each observed frame in pixels |
+| $W$    | $\N$ | width of each observed frame in pixels |
+| $i$    | $\N_H$ | index ranging over the rows in each observed frame |
+| $j$    | $\N_W$ | index ranging over the columns in each observed frame |
+| $k$    | $\N_N$ | index ranging over the fuzzy metaballs |
+| $t$    | $\N_T$ | index ranging over frames |
+| $v_{ij}$ | $S^2$ | direction of the ray corresponding to pixel $(i, j)$ in the camera frame |
+| $\pi^{(t)}$ | $\SE(3)$ | camera pose in world frame at frame $t$ |
+| $\mu_k$ | $\R^3$ | the mean vector of the $k$-the fuzzy metaball |
+| $\Sigma_k$ | $\R^{3\times 3}_{\succ 0}$ | the covariance matrix of the $k$-the fuzzy metaball |
+| $\lambda_k$ | $\R$ | log-weight of the $k$-the fuzzy metaball |
+| $d_{ijk}^{(t)}$    | $\R$ | intersection depth of ray corresponding to pixel $(i, j)$ at frame $t$ with the $k$-th fuzzy metaball |
+| $q_{ijk}^{(t)}$    | $\R$ | the value of the quadratic form of $k$-th fuzzy metaball at the intersection of ray $(i, j)$ at frame $t$ |
+| $w_{ijk}^{(t)}$    | $\R$ | depth blending weight of the $k$-th fuzzy metaball for pixel $(i, j)$ at frame $t$ |
+| $\bar{d}_{ij}^{(t)}$    | $\R$ | depth value of pixel $(i, j)$ at frame $t$ |
+| $c_{ij}^{(t)}$    | $[0, 1]$ | confidence value of pixel $(i, j)$ at frame $t$ |
+| $\L_c$    | $\R$ | contour loss  (a function of $c_{ij}^{(t)}$) |
+| $\L_d$    | $\R$ | depth loss  (a function of $d_{ij}^{(t)}$) |
+
+
+## Forward Pass
+
+\begin{align*}
+%\argmax_{d \in \R} (\mu_k - \Delta x^{(t)} - dv_{ij}^{(t)})^\top
+%\Sigma^{-1} (\mu_k - \Delta x^{(t)} - dv_{ij}^{(t)}) \\
+(\tau^{(t)}, \rho^{(t)}) &:= \pi^{(t)} \\
+v_{ij}^{(t)} &:= \rho^{(t)}v_{ij} \\
+d_{ijk}^{(t)} &:= \frac{(\mu_k - \tau^{(t)})^\top\Sigma_k^{-1}v_{ij}^{(t)}}
+    {{v_{ij}^{(t)}}^\top\Sigma_k^{-1}v_{ij}^{(t)}} \\
+q_{ijk}^{(t)} &:= (\mu_k - \tau^{(t)} - d_{ijk}^{(t)}v_{ij}^{(t)})^\top
+    \Sigma_k^{-1} (\mu_k - \tau^{(t)} - d_{ijk}^{(t)}v_{ij}^{(t)}) \\
+\tilde{w}_{ijk}^{(t)} &:=
+    \exp\left(\beta_1(-q_{ijk}^{(t)}/2 + \lambda_k) - \beta_2 d_{ijk}^{(t)}\right) \\
+w_{ijk}^{(t)} &:= \frac{\tilde{w}_{ijk}^{(t)}}{\sum_{k=1}^N \tilde{w}_{ijk}^{(t)}} \\
+\bar{d}_{ij}^{(t)} &:= \sum_{k=1}^N w_{ijk}^{(t)} d_{ijk}^{(t)} \\
+c_{ij}^{(t)} &:= 1 - \exp\left(\sum_{k=1} \exp(q_{ijk}^{(t)}/2 - \lambda_k)\right)
+\end{align*}
+
+![Dependency graph of the variables in the forward pass using plate
+notation](plate_diagram.png){width=540}
+
+## Depth Backward Pass
+
+\begin{align*}
+\frac{\partial \L_d}{\partial \tilde{w}_{ijk}^{(t)}} &= 
+    \frac{\partial \L_d}{\partial \bar{d}_{ij}^{(t)}}
+    \frac{\partial \bar{d}_{ij}^{(t)}}{\partial \tilde{w}_{ijk}^{(t)}}\\
+\frac{\partial \L_d}{\partial q_{ijk}^{(t)}} &= 
+    \frac{\partial \L_d}{\partial \tilde{w}_{ijk}^{(t)}}
+    \frac{\partial \tilde{w}_{ijk}^{(t)}}{\partial q_{ijk}^{(t)}}\\
+\frac{\partial \L_d}{\partial d_{ijk}^{(t)}} &= 
+    \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
+    \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+    + \frac{\partial \L_d}{\partial \tilde{w}_{ijk}^{(t)}}
+    \frac{\partial \tilde{w}_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+    + \frac{\partial \L_d}{\partial \bar{d}_{ij}^{(t)}}
+    \frac{\partial \bar{d}_{ij}^{(t)}}{\partial d_{ijk}^{(t)}} \\
+\frac{\partial \L_d}{\partial \tau^{(t)}} &=
+    \sum_{i,j}\sum_k \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
+    \frac{\partial q_{ijk}^{(t)}}{\partial \tau^{(t)}}
+    + \sum_{i,j}\sum_k \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
+    \frac{\partial d_{ijk}^{(t)}}{\partial \tau^{(t)}} \\
+\frac{\partial \L_d}{\partial v_{ij}^{(t)}} &=
+    \sum_k \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
+    \frac{\partial q_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
+    + \sum_k \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
+    \frac{\partial d_{ijk}^{(t)}}{\partial v_{ij}^{(t)}} \\
+\frac{\partial \L_d}{\partial \rho^{(t)}} &=
+    \sum_{i,j} \frac{\partial \L_d}{\partial v_{ij}^{(t)}}
+           \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} \\
+\frac{\partial \L_d}{\partial \lambda_k} &= 
+    \sum_t \sum_{i, j}
+    \frac{\partial \L_d}{\partial \tilde{w}_{ijk}^{(t)}}
+    \frac{\partial \tilde{w}_{ijk}^{(t)}}{\partial \lambda_k} \\
+\frac{\partial \L_d}{\partial \mu_k} &= 
+    \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \mu_k}
+    + \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k} \\
+\frac{\partial \L_d}{\partial \Sigma_k} &= 
+    \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+    + \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k} \\
+\end{align*}
+
+
+## Confidence Backward Pass
+
+\begin{align*}
+\frac{\partial \L_c}{\partial d_{ijk}^{(t)}} &= 
+    \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
+    \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}\\
+\frac{\partial \L_c}{\partial q_{ijk}^{(t)}} &= 
+    \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+    \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}}\\
+\frac{\partial \L_c}{\partial \tau^{(t)}} &= 
+    \sum_{i,j}\sum_k \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \tau^{(t)}}
+    + \sum_{i,j}\sum_k \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \tau^{(t)}}\\
+\frac{\partial \L_c}{\partial v_{ij}^{(t)}} &= 
+    \sum_{k} \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
+    + \sum_{k} \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial v_{ij}^{(t)}} \\
+\frac{\partial \L_c}{\partial \rho^{(t)}} &= 
+    \sum_{i,j} \frac{\partial \L_c}{\partial v_{ij}^{(t)}}
+        \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} \\
+\frac{\partial \L_c}{\partial \lambda_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+        \frac{\partial c_{ij}^{(t)}}{\partial \lambda_k} \\
+\frac{\partial \L_c}{\partial \mu_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \mu_k}
+    + \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k} \\
+\frac{\partial \L_c}{\partial \Sigma_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+    + \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k}
+\end{align*}
+
+We can simplify the backward pass by inlining those derivatives that depend on
+fixed $i$, $j$, and $t$. We get:
+
+\begin{align*}
+\frac{\partial \L_c}{\partial \tau^{(t)}} &= 
+    \sum_{i,j}\sum_k \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+        \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
+            \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+            \frac{\partial d_{ijk}^{(t)}}{\partial \tau^{(t)}}
+            + \frac{\partial q_{ijk}^{(t)}}{\partial \tau^{(t)}}
+      \right)\\
+\frac{\partial \L_c}{\partial \rho^{(t)}} &= 
+    \sum_{i,j} \sum_{k} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+    \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
+        \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+        \frac{\partial d_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
+        + \frac{\partial q_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
+    \right) 
+        \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} \\
+\frac{\partial \L_c}{\partial \lambda_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+        \frac{\partial c_{ij}^{(t)}}{\partial \lambda_k} \\
+\frac{\partial \L_c}{\partial \mu_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+        \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
+        \frac{\partial q_{ijk}^{(t)}}{\partial \mu_k}
+        + \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+          \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k}
+    \right) \\
+\frac{\partial \L_c}{\partial \Sigma_k} &= 
+    \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+        \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+        + \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
+          \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k}
+    \right) \\
+\end{align*}
+
+## 
