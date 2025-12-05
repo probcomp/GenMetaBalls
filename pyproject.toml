@@ -74,7 +74,7 @@ build-dir = "build"
 editable.rebuild = true
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "ipykernel>=7.1.0,<8", "ipywidgets>=8.1.8,<9"]
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib", "--doctest-modules"]
