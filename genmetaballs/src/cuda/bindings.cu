@@ -258,8 +258,17 @@ void bind_fmb_scene(nb::module_& m, const char* name) {
              "Construct FMBScene from a list of FMBs and corresponding log weights")
         .def_prop_ro("size", &FMBScene<location>::size)
         .def("__len__", &FMBScene<location>::size)
-        .def("__getitem__", &FMBScene<location>::get_fmb, nb::arg("idx"),
-             "Get the (FMB, log_weight) tuple at index i")
+        .def(
+            "__getitem__",
+            // Convert cuda::std::tuple to std::tuple for nanobind
+            [](const FMBScene<location>& scene, size_t idx) {
+                const auto& [fmb, log_weight] = scene[idx];
+                // for device data, the types would be thrust::device_reference, which cannot be
+                // returned directly to Python. The static cast forces a copy (to host) to be made.
+                return std::make_tuple(static_cast<const FMB&>(fmb),
+                                       static_cast<const float&>(log_weight));
+            },
+            "Get the (FMB, log_weight) tuple at index i")
         .def("__repr__", [=](const FMBScene<location>& scene) {
             return nb::str("{}(size={})").format(name, scene.size());
         });

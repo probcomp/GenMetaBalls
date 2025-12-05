@@ -65,7 +65,7 @@ def make_fmb_scene(size: int, device: DeviceType) -> CPUFMBScene | GPUFMBScene:
 
 # TODO: create a wrapper class for FMBScene and turn the factory functions into
 # class methods
-def fmb_scene_from_values(
+def make_fmb_scene_from_values(
     fmbs: list[fmb.FMB], log_weights: list[float], device: DeviceType
 ) -> CPUFMBScene | GPUFMBScene:
     if device == "cpu":
@@ -87,7 +87,10 @@ __all__ = [
     "intersector",
     "sigmoid",
     "FourParameterBlender",
+    "FMB",
+    "Intrinsics",
     "ThreeParameterBlender",
     "make_image",
     "make_fmb_scene",
+    "make_fmb_scene_from_values",
 ]

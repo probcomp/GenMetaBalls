@@ -3,7 +3,7 @@ import pytest
 from scipy.spatial.distance import mahalanobis
 from scipy.spatial.transform import Rotation as Rot
 
-from genmetaballs.core import fmb, geometry, make_fmb_scene
+from genmetaballs.core import fmb, geometry, make_fmb_scene, make_fmb_scene_from_values
 
 FMB = fmb.FMB
 Pose, Vec3D, Rotation = geometry.Pose, geometry.Vec3D, geometry.Rotation
@@ -48,3 +48,33 @@ def test_fmb_scene_creation():
     gpu_scene = make_fmb_scene(20, device="gpu")
     assert isinstance(gpu_scene, fmb.GPUFMBScene)
     assert len(gpu_scene) == 20
+
+
+@pytest.mark.parametrize("device", ["cpu", "gpu"])
+def test_fmb_scene_creation_from_lists(rng, device):
+    fmbs = []
+    log_weights = []
+    gt_translations = []
+    gt_extents = []
+    num_balls = 15
+    for _ in range(num_balls):
+        quat = rng.uniform(size=4).astype(np.float32)
+        tran, extent = rng.uniform(size=(2, 3)).astype(np.float32)
+        pose = Pose.from_components(Rotation.from_quat(*quat), Vec3D(*tran))
+        fmbs.append(FMB(pose, *extent))
+        log_weights.append(rng.uniform())
+        gt_translations.append(tran)
+        gt_extents.append(extent)
+
+    scene = make_fmb_scene_from_values(fmbs, log_weights, device=device)
+
+    assert len(scene) == num_balls
+    # Verify that we can retrieve each FMB and log weight correctly
+    for i in range(num_balls):
+        fmb_i, log_weight = scene[i]
+        translation = fmb_i.pose.tran
+        assert np.allclose([translation.x, translation.y, translation.z], gt_translations[i])
+
+        fmb_extent = fmb_i.extent
+        assert np.allclose(fmb_extent, gt_extents[i])
+        assert np.isclose(log_weight, log_weights[i])
