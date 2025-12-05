@@ -10,7 +10,7 @@ from genmetaballs._genmetaballs_bindings.confidence import (
     TwoParameterConfidence,
     ZeroParameterConfidence,
 )
-from genmetaballs._genmetaballs_bindings.fmb import CPUFMBScene, GPUFMBScene
+from genmetaballs._genmetaballs_bindings.fmb import FMB, CPUFMBScene, GPUFMBScene
 from genmetaballs._genmetaballs_bindings.image import CPUImage, GPUImage
 from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, GPUFloatArray2D, sigmoid
 
@@ -63,6 +63,19 @@ def make_fmb_scene(size: int, device: DeviceType) -> CPUFMBScene | GPUFMBScene:
         raise ValueError(f"Unsupported device type: {device}")
 
 
+# TODO: create a wrapper class for FMBScene and turn the factory functions into
+# class methods
+def make_fmb_scene_from_values(
+    fmbs: list[fmb.FMB], log_weights: list[float], device: DeviceType
+) -> CPUFMBScene | GPUFMBScene:
+    if device == "cpu":
+        return CPUFMBScene(fmbs, log_weights)
+    elif device == "gpu":
+        return GPUFMBScene(fmbs, log_weights)
+    else:
+        raise ValueError(f"Unsupported device type: {device}")
+
+
 __all__ = [
     "array2d_float",
     "ZeroParameterConfidence",
@@ -74,7 +87,10 @@ __all__ = [
     "intersector",
     "sigmoid",
     "FourParameterBlender",
+    "FMB",
+    "Intrinsics",
     "ThreeParameterBlender",
     "make_image",
     "make_fmb_scene",
+    "make_fmb_scene_from_values",
 ]

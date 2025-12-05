@@ -2,7 +2,12 @@
 
 #include <cuda/std/span>
 #include <cuda/std/tuple>
+#include <cuda_runtime.h>
 #include <stdexcept>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <vector>
 
 #include "geometry.cuh"
 #include "utils.cuh"
@@ -46,74 +51,49 @@ public:
 template <MemoryLocation location>
 class FMBScene {
 private:
-    FMB* fmbs_;
-    float* log_weights_;
+    // Host memory -> thrust::host_vector
+    // Device memory -> thrust::device_vector
+    template <typename T>
+    using vector_t = std::conditional_t<location == MemoryLocation::HOST, thrust::host_vector<T>,
+                                        thrust::device_vector<T>>;
+
+    vector_t<FMB> fmbs_;
+    vector_t<float> log_weights_;
     size_t size_;
 
 public:
-    __host__ FMBScene(size_t size);
+    __host__ FMBScene(size_t size) : size_{size}, fmbs_(size), log_weights_(size) {};
 
-    __host__ ~FMBScene();
-
-    CUDA_CALLABLE cuda::std::tuple<FMB&, float&> operator[](const uint32_t i) {
-        return cuda::std::tie(fmbs_[i], log_weights_[i]);
+    // Copy constructor from std::vector
+    // This enables easy construction from Python side
+    __host__ FMBScene<location>(const std::vector<FMB>& fmbs, const std::vector<float>& log_weights)
+        : size_{fmbs.size()}, fmbs_(fmbs.begin(), fmbs.end()),
+          log_weights_(log_weights.begin(), log_weights.end()) {
+        if (fmbs.size() != log_weights.size()) {
+            throw std::invalid_argument(
+                "FMBScene constructor: fmbs and log_weights must have the same size");
+        }
     }
 
-    CUDA_CALLABLE cuda::std::tuple<const FMB&, const float&> operator[](const uint32_t i) const {
-        return cuda::std::tie(fmbs_[i], log_weights_[i]);
+    CUDA_CALLABLE auto operator[](const uint32_t i) {
+        return cuda::std::make_tuple(fmbs_[i], log_weights_[i]);
     }
 
-    class Iterator {
-    private:
-        FMB* fmb_ptr_;
-        float* log_weight_ptr_;
-
-    public:
-        CUDA_CALLABLE Iterator(FMB* const fmb_ptr, float* const log_weight_ptr)
-            : fmb_ptr_{fmb_ptr}, log_weight_ptr_{log_weight_ptr} {}
-        CUDA_CALLABLE cuda::std::tuple<FMB&, float&> operator*() {
-            return cuda::std::tie(*fmb_ptr_, *log_weight_ptr_);
-        }
-        CUDA_CALLABLE bool operator!=(const Iterator& other) const {
-            return fmb_ptr_ != other.fmb_ptr_ || log_weight_ptr_ != other.log_weight_ptr_;
-        }
-        CUDA_CALLABLE Iterator& operator++() {
-            fmb_ptr_++, log_weight_ptr_++;
-            return *this;
-        }
-    };
-
-    class ConstIterator {
-    private:
-        const FMB* fmb_ptr_;
-        const float* log_weight_ptr_;
-
-    public:
-        CUDA_CALLABLE ConstIterator(const FMB* const fmb_ptr, const float* const log_weight_ptr)
-            : fmb_ptr_{fmb_ptr}, log_weight_ptr_{log_weight_ptr} {}
-        CUDA_CALLABLE cuda::std::tuple<const FMB&, const float&> operator*() const {
-            return cuda::std::tie(*fmb_ptr_, *log_weight_ptr_);
-        }
-        CUDA_CALLABLE bool operator!=(const ConstIterator& other) const {
-            return fmb_ptr_ != other.fmb_ptr_ || log_weight_ptr_ != other.log_weight_ptr_;
-        }
-        CUDA_CALLABLE ConstIterator& operator++() {
-            fmb_ptr_++, log_weight_ptr_++;
-            return *this;
-        }
-    };
-
-    CUDA_CALLABLE Iterator begin() {
-        return Iterator(fmbs_, log_weights_);
+    CUDA_CALLABLE auto operator[](const uint32_t i) const {
+        return cuda::std::make_tuple(fmbs_[i], log_weights_[i]);
     }
-    CUDA_CALLABLE Iterator end() {
-        return Iterator(fmbs_ + size_, log_weights_ + size_);
+
+    CUDA_CALLABLE auto begin() {
+        return thrust::make_zip_iterator(fmbs_.begin(), log_weights_.begin());
     }
-    CUDA_CALLABLE ConstIterator begin() const {
-        return ConstIterator(fmbs_, log_weights_);
+    CUDA_CALLABLE auto end() {
+        return thrust::make_zip_iterator(fmbs_.end(), log_weights_.end());
     }
-    CUDA_CALLABLE ConstIterator end() const {
-        return ConstIterator(fmbs_ + size_, log_weights_ + size_);
+    CUDA_CALLABLE auto begin() const {
+        return thrust::make_zip_iterator(fmbs_.begin(), log_weights_.begin());
+    }
+    CUDA_CALLABLE auto end() const {
+        return thrust::make_zip_iterator(fmbs_.end(), log_weights_.end());
     }
     CUDA_CALLABLE const FMB& get_fmb(uint32_t idx) const {
         return fmbs_[idx];
