@@ -14,11 +14,12 @@ pixi install
 
 ### Development Setup
 
-For development:
+For development, make sure Mesa is installed and then set up hooks.
 
 ```bash
+sudo apt install mesa-common-dev
 pixi install
-pixi run dev-setup
+pixi run dev-setup # set-up hooks
 ```
 
 The `dev-setup` task sets up [pre-commit](https://pre-commit.com/) git hooks:
