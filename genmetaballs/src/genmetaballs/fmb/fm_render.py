@@ -69,7 +69,7 @@ def quat_to_rot(q):
 
 
 def render_func_rays(means, prec_full, weights_log, camera_starts_rays, beta_2, beta_3):
-    prec = jnp.triu(prec_full)
+    prec = jnp.tril(prec_full)  # changed from triu
     # weights = jnp.exp(weights_log)
     # weights = weights/weights.sum()
 
