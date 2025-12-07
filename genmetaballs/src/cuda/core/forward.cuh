@@ -32,7 +32,9 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
             // q: square of Mahalanobis distance at intersection point
             const auto& [d, q] = Intersector::intersect(fmb, ray, extr);
             auto tmp = -0.5f * q + lambda;
-            auto w_tilde = blender.blend(tmp, d);
+            // the next check is needed to match the reference implementation
+            // even though it is not in the paper.
+            auto w_tilde = d > 0 ? blender.blend(tmp, d) : 1e-20f;
             conf_tmp += exp(tmp); // numerically unstable. use logsumexp
             depth_numer += d * w_tilde;
             depth_denom += w_tilde;

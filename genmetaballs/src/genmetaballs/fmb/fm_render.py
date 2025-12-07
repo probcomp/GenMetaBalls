@@ -109,8 +109,11 @@ def render_func_rays(means, prec_full, weights_log, camera_starts_rays, beta_2, 
     w = sig1 * jnp.nan_to_num(jax_stable_exp(-zs * beta_2 + beta_3 * stds)) + 1e-20
 
     wgt = w.sum(0)
-    div = jnp.where(wgt == 0, 1, wgt)
-    w = w / div
+    # div = jnp.where(wgt == 0, 1, wgt)
+    # the `div` variable above is always equal to wgt because 1e-20 is being
+    # added to w on line 109. You can uncomment the line below to check
+    # jax.debug.print('jnp.max(jnp.abs(wgt - div))={d}', d=jnp.max(jnp.abs(wgt - div)))
+    w = w / wgt
 
     init_t = (w * jnp.nan_to_num(zs)).sum(0)
     est_norm = (projp * w[:, :, None]).sum(axis=0)
