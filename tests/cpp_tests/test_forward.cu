@@ -12,7 +12,7 @@ __global__ void fill_with_ones_kernel(Array2D<float, MemoryLocation::DEVICE> out
                                       const Intrinsics& intr) {
     auto pixel_coords = get_pixel_coords(threadIdx, blockIdx, blockDim, gridDim, intr);
     for (const auto [px, py] : pixel_coords) {
-        output[px][py] = 1.0f;
+        output[py][px] = 1.0f;
     }
 }
 } // namespace get_pixel_coords_tests
