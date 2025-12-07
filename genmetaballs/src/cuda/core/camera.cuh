@@ -8,8 +8,8 @@
 #include "utils.cuh"
 
 struct Intrinsics {
-    uint32_t height; // in x direction
-    uint32_t width;  // in y direction
+    uint32_t width;  // in x direction
+    uint32_t height; // in y direction
     float fx;
     float fy;
     float cx;

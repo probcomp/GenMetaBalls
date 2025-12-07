@@ -38,7 +38,6 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
             depth_denom += w_tilde;
         }
         img.confidence[py][px] = confidence.get_confidence(conf_tmp);
-        // img.depth[py][px] = (blockIdx.y * gridDim.x + blockIdx.x) / 16.0f;
         img.depth[py][px] = depth_numer / depth_denom;
     }
 }

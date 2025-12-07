@@ -20,7 +20,7 @@ __global__ void fill_with_ones_kernel(Array2D<float, MemoryLocation::DEVICE> out
 // Test if fmb::get_pixel_coords correctly covers all image pixels
 TEST(ForwardTest, GetPixelCoordsCoverage) {
     const auto intrinsic =
-        Intrinsics{.height = 100, .width = 200, .fx = 1.0f, .fy = 1.0f, .cx = 50.0f, .cy = 100.0f};
+        Intrinsics{.width = 200, .height = 100, .fx = 1.0f, .fy = 1.0f, .cx = 50.0f, .cy = 100.0f};
     auto buffer = thrust::device_vector<float>(intrinsic.height * intrinsic.width, 0.0f);
     auto array2d =
         Array2D<float, MemoryLocation::DEVICE>(buffer.data(), intrinsic.height, intrinsic.width);

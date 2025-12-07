@@ -136,8 +136,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
      */
     nb::module_ camera = m.def_submodule("camera", "Camera intrinsics and extrinsics");
     nb::class_<Intrinsics>(camera, "Intrinsics")
-        .def(nb::init<uint32_t, uint32_t, float, float, float, float>(), nb::arg("height"),
-             nb::arg("width"), nb::arg("fx"), nb::arg("fy"), nb::arg("cx"), nb::arg("cy"))
+        .def(nb::init<uint32_t, uint32_t, float, float, float, float>(), nb::arg("width"),
+             nb::arg("height"), nb::arg("fx"), nb::arg("fy"), nb::arg("cx"), nb::arg("cy"))
         .def_ro("height", &Intrinsics::height)
         .def_ro("width", &Intrinsics::width)
         .def_ro("fx", &Intrinsics::fx)

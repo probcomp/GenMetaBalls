@@ -15,14 +15,13 @@ namespace test_camera_gpu {
 // Each thread processes one row of the image via PixelCoordRange
 __global__ void get_ray_directions_kernel(Intrinsics intrinsics,
                                           Array2D<Vec3D, MemoryLocation::DEVICE> ray_buffer) {
-    uint32_t row_start = threadIdx.x * 2;
-    uint32_t row_end = max(row_start + 2, intrinsics.height);
-    uint32_t col_start = threadIdx.y * 2;
-    uint32_t col_end = max(col_start + 2, intrinsics.width);
-    auto pixel_coords = PixelCoordRange{row_start, row_end, col_start, col_end};
-
+    uint32_t px_start = threadIdx.x * 2;
+    uint32_t px_end = max(px_start + 2, intrinsics.width);
+    uint32_t py_start = threadIdx.y * 2;
+    uint32_t py_end = max(py_start + 2, intrinsics.height);
+    auto pixel_coords = PixelCoordRange{px_start, px_end, py_start, py_end};
     for (auto [px, py] : pixel_coords) {
-        ray_buffer[px][py] = intrinsics.get_ray_direction(px, py);
+        ray_buffer[py][px] = intrinsics.get_ray_direction(px, py);
     }
 }
 
@@ -31,7 +30,7 @@ __global__ void get_ray_directions_kernel(Intrinsics intrinsics,
 // Test get_ray_directions on GPU (device)
 TEST(CameraTest, GetRayDirectionsDevice) {
     // Create a small camera intrinsics
-    Intrinsics intrinsics{4, 6, 100.0f, 100.0f, 3.0f, 2.0f};
+    Intrinsics intrinsics{6, 4, 100.0f, 100.0f, 3.0f, 2.0f};
 
     // Create Array2D buffer on device
     thrust::device_vector<Vec3D> data(intrinsics.height * intrinsics.width);
@@ -40,7 +39,7 @@ TEST(CameraTest, GetRayDirectionsDevice) {
 
     // Launch kernel with multiple threads -- divide into 2x2 tiles
     test_camera_gpu::
-        get_ray_directions_kernel<<<1, dim3(intrinsics.height / 2, intrinsics.width / 2)>>>(
+        get_ray_directions_kernel<<<1, dim3(intrinsics.width / 2, intrinsics.height / 2)>>>(
             intrinsics, ray_buffer);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
