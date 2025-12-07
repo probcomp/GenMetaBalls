@@ -17,7 +17,7 @@ public:
         const auto v = cam_pose.get_rot().apply(ray);
         const auto cov_inv_v = fmb.cov_inv_apply(v);
         const auto cam_tran = cam_pose.get_tran();
-        const auto t = dot(fmb.get_mean() - cam_tran, cov_inv_v) / dot(v, cov_inv_v);
-        return {t, fmb.quadratic_form(cam_tran + t * v)};
+        const auto d = dot(fmb.get_mean() - cam_tran, cov_inv_v) / dot(v, cov_inv_v);
+        return {d, fmb.quadratic_form(cam_tran + d * v)};
     }
 };

@@ -25,22 +25,21 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
     auto fmb_getter = Getter(fmbs, extr);
 
     for (const auto [px, py] : pixel_coords) {
-        float w0 = 0.0f, tf = 0.0f, sumexpd = 0.0f;
+        float depth_denom = 0.0f, depth_numer = 0.0f, conf_tmp = 0.0f;
         auto ray = intr.get_ray_direction(px, py);
-        for (const auto& [fmb, log_lambda] : fmb_getter.get_metaballs(ray)) {
-            // t: intersection point along the ray
-            // d_: square of Mahalanobis distance at intersection point
-            const auto& [t, d_] = Intersector::intersect(fmb, ray, extr);
-            // d2: unnormalized log distance of each Gaussian
-            // d0 & d_i follows equation (2) in FMB-plus paper
-            const auto d = -0.5f * d_ + log_lambda;
-            auto w = blender.blend(t, d);
-            sumexpd += exp(d); // numerically unstable. use logsumexp
-            tf += t;
-            w0 += w;
+        for (const auto& [fmb, lambda] : fmb_getter.get_metaballs(ray)) {
+            // d: intersection point along the ray
+            // q: square of Mahalanobis distance at intersection point
+            const auto& [d, q] = Intersector::intersect(fmb, ray, extr);
+            auto tmp = -0.5f * q + lambda;
+            auto w_tilde = blender.blend(tmp, d);
+            conf_tmp += exp(-tmp); // numerically unstable. use logsumexp
+            depth_numer += d * w_tilde;
+            depth_denom += w_tilde;
         }
-        img.confidence[px][py] = confidence.get_confidence(sumexpd);
-        img.depth[px][py] = tf / w0;
+        img.confidence[py][px] = confidence.get_confidence(conf_tmp);
+        // img.depth[py][px] = (blockIdx.y * gridDim.x + blockIdx.x) / 16.0f;
+        img.depth[py][px] = depth_numer / depth_denom;
     }
 }
 
