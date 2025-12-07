@@ -33,7 +33,7 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
             const auto& [d, q] = Intersector::intersect(fmb, ray, extr);
             auto tmp = -0.5f * q + lambda;
             auto w_tilde = blender.blend(tmp, d);
-            conf_tmp += exp(-tmp); // numerically unstable. use logsumexp
+            conf_tmp += exp(tmp); // numerically unstable. use logsumexp
             depth_numer += d * w_tilde;
             depth_denom += w_tilde;
         }
