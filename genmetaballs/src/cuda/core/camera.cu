@@ -27,7 +27,8 @@ CUDA_CALLABLE PixelCoordRange::Iterator& PixelCoordRange::Iterator::operator++()
 }
 
 CUDA_CALLABLE bool PixelCoordRange::Sentinel::operator==(const Iterator& it) const {
-    return it.py >= py_end;
+    // stop if we reach the end of rows, or if the range is empty
+    return it.py >= py_end || it.px_start >= it.px_end || it.py_start >= py_end;
 }
 
 CUDA_CALLABLE PixelCoordRange::Iterator PixelCoordRange::begin() const {
