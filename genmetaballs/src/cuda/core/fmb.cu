@@ -8,13 +8,10 @@ CUDA_CALLABLE __forceinline__ Vec3D vecdiv(const Vec3D u, const Vec3D v) {
 
 CUDA_CALLABLE Vec3D FMB::cov_inv_apply(const Vec3D vec) const {
     const auto rot = pose_.get_rot();
-    // Compute R @ diag(1/extent) @ R^T @ vec
-    // Step 1: R^T @ vec (apply inverse rotation)
-    const auto vec_rotated = rot.inv().apply(vec);
-    // Step 2: diag(1/extent) @ (R^T @ vec)
-    const auto vec_scaled = vecdiv(vec_rotated, extent_);
-    // Step 3: R @ (diag(1/extent) @ R^T @ vec)
-    return rot.apply(vec_scaled);
+    // Wanted to add more infor here
+    // Basically the order of the operation has bee swapper to look something like this:  R @ diag(1/extent) @ R^T @ vec
+    // however, i dont think this fixes everything
+    return rot.apply(vecdiv(rot.inv().apply(vec), extent_));
 }
 
 CUDA_CALLABLE float FMB::quadratic_form(const Vec3D vec) const {
