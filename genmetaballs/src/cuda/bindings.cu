@@ -71,7 +71,10 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def("cov_inv_apply", &FMB::cov_inv_apply,
              "apply the inverse covariance matrix to the given vector", nb::arg("vec"))
         .def("quadratic_form", &FMB::quadratic_form,
-             "Evaluate the associated quadratic form at the given vector", nb::arg("vec"));
+             "Evaluate the associated quadratic form at the given vector", nb::arg("vec"))
+        .def("__repr__", [](const FMB& self) {
+                return nb::str("FMB(pose={}, extent={})").format(self.get_pose(), self.get_extent());
+            });
     bind_fmb_scene<MemoryLocation::HOST>(fmb, "CPUFMBScene");
     bind_fmb_scene<MemoryLocation::DEVICE>(fmb, "GPUFMBScene");
 
@@ -116,9 +119,17 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def(nb::init<>())
         .def_static("from_quat", &Rotation::from_quat, "Create rotation from quaternion",
                     nb::arg("x"), nb::arg("y"), nb::arg("z"), nb::arg("w"))
+        .def_prop_ro("quat", [](const Rotation& self) {
+            auto quat = self.get_quat();
+            return std::tuple{quat.x, quat.y, quat.z, quat.w};
+        }, "Get quaternion components as (x, y, z, w)")
         .def("apply", &Rotation::apply, "Apply rotation to vector", nb::arg("vec"))
         .def("compose", &Rotation::compose, "Compose with another rotation", nb::arg("rot"))
-        .def("inv", &Rotation::inv, "Inverse rotation");
+        .def("inv", &Rotation::inv, "Inverse rotation")
+        .def("__repr__", [](const Rotation& self) {
+                auto quat = self.get_quat();
+                return nb::str("Rotation(x={}, y={}, z={}, w={})").format(quat.x, quat.y, quat.z, quat.w);
+            });
 
     nb::class_<Pose>(geometry, "Pose")
         .def(nb::init<>())
@@ -129,8 +140,10 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_prop_ro("tran", &Pose::get_tran, "get the translation component")
         .def("apply", &Pose::apply, "Apply pose to vector", nb::arg("vec"))
         .def("compose", &Pose::compose, "Compose with another pose", nb::arg("pose"))
-        .def("inv", &Pose::inv, "Inverse pose");
-
+        .def("inv", &Pose::inv, "Inverse pose")
+        .def("__repr__", [](const Pose& self) {
+                return nb::str("Pose(rot={}, tran={})").format(self.get_rot(), self.get_tran());
+            });
     /*
      * Camera module bindings
      */
@@ -146,7 +159,10 @@ NB_MODULE(_genmetaballs_bindings, m) {
         .def_ro("cy", &Intrinsics::cy)
         .def("get_ray_direction", &Intrinsics::get_ray_direction,
              "Get the direction of the ray going through pixel (px, py) in camera frame",
-             nb::arg("px"), nb::arg("py"));
+             nb::arg("px"), nb::arg("py"))
+        .def("__repr__", [](const Intrinsics& self) {
+                return nb::str("Intrinsics(width={}, height={}, fx={}, fy={}, cx={}, cy={})").format(self.width, self.height, self.fx, self.fy, self.cx, self.cy);
+            });
 
     /*
      * Image module bindings

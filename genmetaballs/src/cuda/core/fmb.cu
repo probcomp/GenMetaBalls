@@ -8,7 +8,13 @@ CUDA_CALLABLE __forceinline__ Vec3D vecdiv(const Vec3D u, const Vec3D v) {
 
 CUDA_CALLABLE Vec3D FMB::cov_inv_apply(const Vec3D vec) const {
     const auto rot = pose_.get_rot();
-    return rot.inv().apply(vecdiv(rot.apply(vec), extent_));
+    // Compute R @ diag(1/extent) @ R^T @ vec
+    // Step 1: R^T @ vec (apply inverse rotation)
+    const auto vec_rotated = rot.inv().apply(vec);
+    // Step 2: diag(1/extent) @ (R^T @ vec)
+    const auto vec_scaled = vecdiv(vec_rotated, extent_);
+    // Step 3: R @ (diag(1/extent) @ R^T @ vec)
+    return rot.apply(vec_scaled);
 }
 
 CUDA_CALLABLE float FMB::quadratic_form(const Vec3D vec) const {
