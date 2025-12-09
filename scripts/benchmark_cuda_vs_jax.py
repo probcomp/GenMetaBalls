@@ -221,8 +221,14 @@ def run_optimization(mesh_file, num_fmbs, width, height):
     }
 
 
-def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, warmup=10):
+def benchmark_comparison(opt_results, kernel_id=0, num_iterations=100, warmup=10):
     """Benchmark and compare CUDA vs JAX implementations using notebook setup."""
+    kernel_names = {
+        0: "original (slow working)",
+        1: "FMB-parallelized (warp reduction)",
+    }
+    kernel_name = kernel_names.get(kernel_id, f"kernel_{kernel_id}")
+    
     print("="*80)
     print(f"BENCHMARK: CUDA render_fmbs vs JAX Implementation")
     print("="*80)
@@ -230,7 +236,7 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
     print(f"  FMBs: {opt_results['num_fmbs']}")
     print(f"  Image size: {opt_results['width']}x{opt_results['height']}")
     print(f"  Views: {num_views}")
-    print(f"  Use optimized kernel: {use_optimized}")
+    print(f"  CUDA Kernel ID: {kernel_id} ({kernel_name})")
     print(f"  Warmup iterations: {warmup}")
     print(f"  Benchmark iterations: {num_iterations}")
     print()
@@ -283,7 +289,7 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
             rot=Rotation.from_quat(*rand_quats[0]).inv(),
             tran=Vec3D(*trans[0])
         )
-        image = render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, use_optimized=use_optimized)
+        image = render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, kernel_id=kernel_id)
         _ = image.as_view().depth.as_jax().block_until_ready()
     
     print("\nRunning benchmarks...")
@@ -316,7 +322,7 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
             tran=Vec3D(*trans[view_idx])
         )
         start = time.perf_counter()
-        image = render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, use_optimized=use_optimized)
+        image = render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, kernel_id=kernel_id)
         _ = image.as_view().depth.as_jax().block_until_ready()
         elapsed = (time.perf_counter() - start) * 1000
         cuda_times.append(elapsed)
@@ -345,7 +351,7 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
     print(f"  Median time:       {np.median(jax_times):.4f} ms")
     print(f"  FPS:               {1000.0 / jax_mean_ms:.2f}")
     print()
-    print(f"GenMetaBalls CUDA Implementation ({'optimized' if use_optimized else 'original'}):")
+    print(f"GenMetaBalls CUDA Implementation (kernel_id={kernel_id}, {kernel_name}):")
     print(f"  Mean time per run: {cuda_mean_ms:.4f} ms")
     print(f"  Std deviation:     {cuda_times.std():.4f} ms")
     print(f"  Min time:          {cuda_times.min():.4f} ms")
@@ -430,7 +436,8 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
         'alpha_relative_error': float(alpha_relative_error),
         'depth_ok': bool(depth_ok),
         'alpha_ok': bool(alpha_ok),
-        'use_optimized': use_optimized,
+        'kernel_id': kernel_id,
+        'kernel_name': kernel_name,
         'num_fmbs': opt_results['num_fmbs'],
         'width': width,
         'height': height,
@@ -451,12 +458,12 @@ def benchmark_comparison(opt_results, use_optimized=True, num_iterations=100, wa
     return results
 
 
-def save_benchmark_results(project_root, results, num_fmbs, width, height, use_optimized):
+def save_benchmark_results(project_root, results, num_fmbs, width, height, kernel_id):
     """Save benchmark results to file."""
     cache_dir = project_root / "scripts" / "data" / "benchmark_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     
-    kernel_suffix = "optimized" if use_optimized else "original"
+    kernel_suffix = f"kernel{kernel_id}"
     results_file = cache_dir / f"results_fmbs{num_fmbs}_size{width}x{height}_{kernel_suffix}.json"
     
     print(f"\nSaving benchmark results to {results_file}...")
@@ -472,14 +479,11 @@ if __name__ == "__main__":
     parser.add_argument("--height", type=int, default=64, help="Image height (default: 64)")
     parser.add_argument("--iterations", type=int, default=100, help="Number of benchmark iterations (default: 100)")
     parser.add_argument("--warmup", type=int, default=10, help="Number of warmup iterations (default: 10)")
-    parser.add_argument("--use-optimized", action="store_true", default=True, help="Use optimized kernel (default: True)")
-    parser.add_argument("--use-original", action="store_true", help="Use original kernel instead of optimized")
+    parser.add_argument("--kernel-id", type=int, default=0, 
+                        help="CUDA kernel ID to use (0=original slow working, 1=FMB-parallelized, default: 0)")
     parser.add_argument("--force-rerun", action="store_true", help="Force re-run optimization even if cache exists")
     
     args = parser.parse_args()
-    
-    # Handle kernel choice
-    use_optimized = args.use_optimized and not args.use_original
     
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
     mesh_file = PROJECT_ROOT / "data/cow/cow.obj"
@@ -492,13 +496,13 @@ if __name__ == "__main__":
     # Run benchmark
     results = benchmark_comparison(
         opt_results, 
-        use_optimized=use_optimized,
+        kernel_id=args.kernel_id,
         num_iterations=args.iterations, 
         warmup=args.warmup
     )
     
     # Save results
-    save_benchmark_results(PROJECT_ROOT, results, args.num_fmbs, args.width, args.height, use_optimized)
+    save_benchmark_results(PROJECT_ROOT, results, args.num_fmbs, args.width, args.height, args.kernel_id)
     
     # Summary
     print("\n" + "="*80)
@@ -506,7 +510,7 @@ if __name__ == "__main__":
     print("="*80)
     print(f"Performance:")
     print(f"  FMB-JAX:      {results['jax_mean_ms']:.4f} ms/run")
-    print(f"  GenMetaBalls: {results['cuda_mean_ms']:.4f} ms/run ({'optimized' if use_optimized else 'original'} kernel)")
+    print(f"  GenMetaBalls:  {results['cuda_mean_ms']:.4f} ms/run (kernel_id={args.kernel_id}, {results['kernel_name']})")
     print(f"  Speedup:      {results['speedup']:.2f}x {'(CUDA faster)' if results['speedup'] > 1 else '(JAX faster)'}")
     print()
     print(f"Accuracy:")
