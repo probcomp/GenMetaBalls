@@ -13,7 +13,7 @@ CUDA_CALLABLE Vec3D Intrinsics::get_ray_direction(uint32_t px, uint32_t py) cons
     return Vec3D{x, y, -1.0f};
 }
 
-CUDA_CALLABLE cuda::std::pair<uint32_t, uint32_t> PixelCoordRange::Iterator::operator*() const {
+CUDA_CALLABLE PixelCoord PixelCoordRange::Iterator::operator*() const {
     return cuda::std::make_pair(px, py);
 }
 
@@ -38,4 +38,26 @@ CUDA_CALLABLE PixelCoordRange::Iterator PixelCoordRange::begin() const {
 
 CUDA_CALLABLE PixelCoordRange::Sentinel PixelCoordRange::end() const {
     return Sentinel{py_end};
+}
+
+CUDA_CALLABLE PixelCoord FlattenedPixelCoordRange::Iterator::operator*() const {
+    return cuda::std::make_pair(pixel_idx % width, pixel_idx / width);
+}
+
+CUDA_CALLABLE FlattenedPixelCoordRange::Iterator& FlattenedPixelCoordRange::Iterator::operator++() {
+    ++pixel_idx;
+    return *this;
+}
+
+CUDA_CALLABLE bool operator!=(const FlattenedPixelCoordRange::Iterator& it,
+                              const FlattenedPixelCoordRange::Sentinel& sentinel) {
+    return it.pixel_idx < sentinel.pixel_idx_end && it.pixel_idx_start < it.pixel_idx_end;
+}
+
+CUDA_CALLABLE FlattenedPixelCoordRange::Iterator FlattenedPixelCoordRange::begin() const {
+    return Iterator{pixel_idx_start, pixel_idx_end, width, height, pixel_idx_start};
+}
+
+CUDA_CALLABLE FlattenedPixelCoordRange::Sentinel FlattenedPixelCoordRange::end() const {
+    return Sentinel{pixel_idx_end};
 }

@@ -29,6 +29,6 @@ TEST(ForwardTest, GetPixelCoordsCoverage) {
     get_pixel_coords_tests::fill_with_ones_kernel<<<grid_dim, block_dim>>>(array2d, intrinsic);
     auto host_buffer = thrust::host_vector<float>(buffer);
     for (size_t i = 0; i < host_buffer.size(); ++i) {
-        EXPECT_EQ(host_buffer[i], 1.0f);
+        EXPECT_EQ(host_buffer[i], 1.0f) << "Pixel at index " << i << " is not 1.0f";
     }
 }

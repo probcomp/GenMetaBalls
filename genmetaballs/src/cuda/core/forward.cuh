@@ -59,7 +59,7 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             // Use 3D block size: z-dimension = num_fmb_chunks
             // CUDA limit: max 1024 threads per block
             // Ensure block_size.x * block_size.y * num_fmb_chunks <= 1024
-            uint32_t max_threads_per_block = 1024;
+            constexpr uint32_t max_threads_per_block = 1024;
             uint32_t required_threads = block_size.x * block_size.y * num_fmb_chunks;
 
             dim3 block_size_3d;

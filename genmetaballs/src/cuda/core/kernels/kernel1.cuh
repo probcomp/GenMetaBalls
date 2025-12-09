@@ -27,6 +27,29 @@ CUDA_CALLABLE __forceinline__ PixelCoordRange get_pixel_coords_inline(const dim3
         .px_start = start_x, .px_end = end_x, .py_start = start_y, .py_end = end_y};
 }
 
+// Inline implementation of get_pixel_coords to avoid multiple definition errors
+// (get_pixel_coords is declared in camera.cuh and defined in forward.cu)
+CUDA_CALLABLE __forceinline__ FlattenedPixelCoordRange
+get_pixel_coords_flattened(const dim3 thread_idx, const dim3 block_idx, const dim3 block_dim,
+                           const dim3 grid_dim, const Intrinsics& intr) {
+    // given that we aren't doing tilling, there's no real benefit of using 2D grid to optimize
+    // for spatial locality.
+    // Therefore, let's simply use 1D indexing and optimize for memory locality instead
+    const auto num_pixels = intr.num_pixels();
+    const auto num_threads_per_block = block_dim.x * block_dim.y;
+    const auto num_blocks = grid_dim.x * grid_dim.y;
+    const auto num_pixels_per_thread = int_ceil_div(num_pixels, num_blocks * num_threads_per_block);
+    const auto flatten_block_idx = block_idx.y * grid_dim.x + block_idx.x;
+    const auto flatten_thread_idx = thread_idx.y * block_dim.x + thread_idx.x;
+    const auto start_pixel =
+        (flatten_block_idx * num_threads_per_block + flatten_thread_idx) * num_pixels_per_thread;
+    const auto end_pixel = min(start_pixel + num_pixels_per_thread, num_pixels);
+    return FlattenedPixelCoordRange{.pixel_idx_start = start_pixel,
+                                    .pixel_idx_end = end_pixel,
+                                    .width = intr.width,
+                                    .height = intr.height};
+}
+
 // ============================================================================
 // KERNEL 1: 3-KERNEL FMB CHUNK PARALLELIZATION
 // ============================================================================
@@ -45,16 +68,7 @@ __global__ void render_kernel_fmb_chunk_processing(
     const Pose& extr, TempBufferView<MemoryLocation::DEVICE> temp_buffers, uint32_t num_fmb_chunks,
     uint32_t fmb_chunk_size) {
     // Get pixel coordinate range for this thread (like kernel 0)
-    // Note: blockDim.x and blockDim.y are still the x and y dimensions even with 3D block
-    // We need to create a 2D block_dim and grid_dim for get_pixel_coords
-    dim3 thread_idx_2d(threadIdx.x, threadIdx.y, 0);
-    dim3 block_idx_2d(blockIdx.x, blockIdx.y, 0);
-    dim3 block_dim_2d(blockDim.x, blockDim.y, 1);
-    // Use the actual grid dimensions (which account for 3D block)
-    dim3 grid_dim_2d(gridDim.x, gridDim.y, 1);
-
-    auto pixel_coords =
-        get_pixel_coords_inline(thread_idx_2d, block_idx_2d, block_dim_2d, grid_dim_2d, intr);
+    auto pixel_coords = get_pixel_coords_flattened(threadIdx, blockIdx, blockDim, gridDim, intr);
 
     const int fmb_chunk_idx = threadIdx.z; // FMB chunk index from 3rd block dimension
 
@@ -67,7 +81,7 @@ __global__ void render_kernel_fmb_chunk_processing(
 
     // Get FMB scene once per thread (not per pixel!) since get_metaballs() returns all FMBs
     // Use a dummy ray since AllGetter ignores it anyway
-    const Vec3D dummy_ray(0.0f, 0.0f, 1.0f);
+    constexpr Vec3D dummy_ray(0.0f, 0.0f, 1.0f);
     const auto& fmb_scene = fmb_getter.get_metaballs(dummy_ray);
     const int num_fmbs = fmb_scene.size();
 
@@ -203,14 +217,7 @@ template <typename Confidence>
 __global__ void render_kernel_fmb_finalize(TempBufferView<MemoryLocation::DEVICE> temp_buffers,
                                            const Confidence& confidence, const Intrinsics& intr,
                                            ImageView<MemoryLocation::DEVICE> img) {
-    // Use same pixel coordinate calculation as kernel 1a and 1b (pixel tiling)
-    dim3 thread_idx_2d(threadIdx.x, threadIdx.y, 0);
-    dim3 block_idx_2d(blockIdx.x, blockIdx.y, 0);
-    dim3 block_dim_2d(blockDim.x, blockDim.y, 1);
-    dim3 grid_dim_2d(gridDim.x, gridDim.y, 1);
-
-    auto pixel_coords =
-        get_pixel_coords_inline(thread_idx_2d, block_idx_2d, block_dim_2d, grid_dim_2d, intr);
+    auto pixel_coords = get_pixel_coords_inline(threadIdx, blockIdx, blockDim, gridDim, intr);
 
     // Read reduced values from first 3 buffers (chunk 0)
     float* reduced_depth_numer = temp_buffers.get_buffer_ptr(0, 0);
