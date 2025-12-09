@@ -16,6 +16,8 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
 ################
 
 add_library(genmetaballs_core
+  genmetaballs/src/cuda/core/backward.cu
+  genmetaballs/src/cuda/core/backward.cuh
   genmetaballs/src/cuda/core/camera.cu
   genmetaballs/src/cuda/core/camera.cuh
   genmetaballs/src/cuda/core/confidence.cuh
