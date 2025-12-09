@@ -9,10 +9,6 @@
 #include "image.cuh"
 #include "utils.cuh"
 
-// TODO: tune this number
-constexpr auto NUM_BLOCKS = dim3(4, 4);
-constexpr auto THREADS_PER_BLOCK = dim3(16, 16);
-
 CUDA_CALLABLE PixelCoordRange get_pixel_coords(const dim3 thread_idx, const dim3 block_idx,
                                                const dim3 block_dim, const dim3 grid_dim,
                                                const Intrinsics& intr);
@@ -49,7 +45,8 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
 void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
                  const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
-                 ImageView<MemoryLocation::DEVICE> img) {
+                 ImageView<MemoryLocation::DEVICE> img, const dim3 grid_size,
+                 const dim3 block_size) {
     render_kernel<Getter, Intersector, Blender, Confidence>
-        <<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmbs, blender, confidence, intr, extr, img);
+        <<<grid_size, block_size>>>(fmbs, blender, confidence, intr, extr, img);
 }

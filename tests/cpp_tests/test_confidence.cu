@@ -101,7 +101,7 @@ TEST(GpuConfidenceTest, ConfidenceMultipleValuesGPU_AllTypes) {
 
                 std::vector<float> actual;
                 if (conf_case.is_two_param) {
-                    TwoParameterConfidence conf(conf_case.beta4, conf_case.beta5);
+                    TwoParameterConfidence conf{conf_case.beta4, conf_case.beta5};
                     actual = gpu_get_confidence(sumexpd_vec, conf);
                 } else {
                     ZeroParameterConfidence conf;

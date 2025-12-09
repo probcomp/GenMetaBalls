@@ -228,6 +228,17 @@ NB_MODULE(_genmetaballs_bindings, m) {
     bind_array2d<float, MemoryLocation::HOST>(utils, "CPUFloatArray2D");
     bind_array2d<float, MemoryLocation::DEVICE>(utils, "GPUFloatArray2D");
 
+    // bind dim3, which is used to specify the launch configuration for the kernel
+    nb::class_<dim3>(utils, "dim3")
+        .def(nb::init<uint32_t, uint32_t, uint32_t>(), nb::arg("x") = 1, nb::arg("y") = 1,
+             nb::arg("z") = 1)
+        .def_prop_ro("x", [](const dim3& self) { return self.x; })
+        .def_prop_ro("y", [](const dim3& self) { return self.y; })
+        .def_prop_ro("z", [](const dim3& self) { return self.z; })
+        .def("__repr__", [](const dim3& self) {
+            return nb::str("dim3(x={}, y={}, z={})").format(self.x, self.y, self.z);
+        });
+
 } // NB_MODULE(_genmetaballs_bindings)
 
 template <typename T, MemoryLocation location>
@@ -319,5 +330,5 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
           &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>,
           "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
           nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"),
-          nb::arg("img"));
+          nb::arg("img"), nb::arg("grid_size"), nb::arg("block_size"));
 }
