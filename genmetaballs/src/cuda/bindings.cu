@@ -312,12 +312,20 @@ void bind_fmb_scene(nb::module_& m, const char* name) {
             return nb::str("{}(size={})").format(name, scene.size());
         });
 }
-
 template <typename Blender, typename Confidence>
 void bind_render_fmbs(nb::module_& m, const char* name) {
-    m.def(name,
-          &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>,
-          "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
-          nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"),
-          nb::arg("img"), nb::arg("kernel_id") = 0);
+    m.def(
+        name,
+        [](const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
+           const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
+           ImageView<MemoryLocation::DEVICE> img, int kernel_id = 0, bool block = false) {
+            render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>(
+                fmbs, blender, confidence, intr, extr, img, kernel_id);
+            if (block) {
+                cudaDeviceSynchronize();
+            }
+        },
+        "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
+        nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"), nb::arg("img"),
+        nb::arg("kernel_id") = 0, nb::arg("block") = false);
 }

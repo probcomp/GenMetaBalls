@@ -84,6 +84,7 @@ def render_fmbs(
     extr: geometry.Pose,
     img: GPUImage | None = None,
     kernel_id: int = 0,
+    block: bool = False,
 ) -> GPUImage:
     """Render the given FMB scene into the provided image view.
 
@@ -95,6 +96,7 @@ def render_fmbs(
             - 0: Original slow working kernel (for verification)
             - 1: FMB-parallelized kernel (warp-level reduction)
             - 2+: Reserved for future optimizations
+        block: Whether to block the GPU until the render is complete.
     """
     if img is None:
         img = make_image(intr.height, intr.width, device="gpu")
@@ -116,7 +118,7 @@ def render_fmbs(
             f"Unsupported blender and confidence combination. Blender: {type(blender)}, Confidence: {type(confidence)}"
         )
 
-    render_func(fmbs, blender, confidence, intr, extr, img.as_view(), kernel_id)
+    render_func(fmbs, blender, confidence, intr, extr, img.as_view(), kernel_id, block)
     return img
 
 
