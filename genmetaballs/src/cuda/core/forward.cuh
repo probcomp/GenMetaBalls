@@ -9,12 +9,6 @@
 #include "image.cuh"
 #include "utils.cuh"
 
-// Note: Kernel choice is now a runtime parameter, not compile-time
-
-// Original configuration
-constexpr auto NUM_BLOCKS = dim3(4, 4);
-constexpr auto THREADS_PER_BLOCK = dim3(16, 16);
-
 // Optimized configuration
 constexpr int THREADS_PER_BLOCK_1D = 256; // 8 warps per block
 constexpr int WARP_SIZE = 32;             // CUDA warp size
@@ -146,12 +140,13 @@ __global__ void render_kernel_fmb_parallel(const FMBScene<MemoryLocation::DEVICE
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
 void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
                  const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
-                 ImageView<MemoryLocation::DEVICE> img, int kernel_id = 0) {
+                 ImageView<MemoryLocation::DEVICE> img, const dim3 grid_size, const dim3 block_size,
+                 int kernel_id) {
     switch (kernel_id) {
         case 0: {
             // Original slow working kernel (for verification)
             render_kernel_original<Getter, Intersector, Blender, Confidence>
-                <<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmbs, blender, confidence, intr, extr, img);
+                <<<grid_size, block_size>>>(fmbs, blender, confidence, intr, extr, img);
             break;
         }
         case 1: {
@@ -163,13 +158,13 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
                 (num_threads_needed + THREADS_PER_BLOCK_1D - 1) / THREADS_PER_BLOCK_1D;
 
             render_kernel_fmb_parallel<Getter, Intersector, Blender, Confidence>
-                <<<num_blocks, THREADS_PER_BLOCK_1D>>>(fmbs, blender, confidence, intr, extr, img);
+                <<<grid_size, block_size>>>(fmbs, blender, confidence, intr, extr, img);
             break;
         }
         default:
             // Fallback to original kernel for unknown kernel IDs
             render_kernel_original<Getter, Intersector, Blender, Confidence>
-                <<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmbs, blender, confidence, intr, extr, img);
+                <<<grid_size, block_size>>>(fmbs, blender, confidence, intr, extr, img);
             break;
     }
 }

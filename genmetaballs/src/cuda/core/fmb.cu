@@ -14,8 +14,8 @@ CUDA_CALLABLE __forceinline__ Vec3D vecdiv(const Vec3D u, const Vec3D v) {
 CUDA_CALLABLE Vec3D FMB::cov_inv_apply(const Vec3D vec) const {
     const auto rot = pose_.get_rot();
     // Wanted to add more infor here
-    // Basically the order of the operation has bee swapper to look something like this:  R @
-    // diag(1/extent) @ R^T @ vec however, i dont think this fixes everything
+    // Basically the order of the operation has bee swapper to look something like this:
+    // R @ diag(1/extent) @ R^T @ vec however, i dont think this fixes everything
     return rot.apply(vecdiv(rot.inv().apply(vec), extent_));
 }
 

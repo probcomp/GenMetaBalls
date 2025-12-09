@@ -35,6 +35,7 @@ from genmetaballs.core import (
     make_fmb_scene_from_values,
     make_image,
     render_fmbs,
+    dim3,
 )
 from genmetaballs.fmb.utils import DegradeLR, get_camera_rays, image_grid
 from jax.example_libraries import optimizers
@@ -50,7 +51,8 @@ rand_sphere_size = 30
 num_views = 20
 vfov_degrees = 45
 Nepochs = 10
-batch_size = 800
+# batch_size is calculated dynamically based on image dimensions
+# Base: 800 for 64x64 (4096 rays), scales proportionately
 initial_lr = 0.1
 opt_shape_scale = 2.2
 clip_alpha = 3.0e-8
@@ -126,6 +128,12 @@ def run_optimization(mesh_file, num_fmbs, width, height):
     focal_length = 0.5 * image_size[0] / np.tan((np.pi / 180.0) * vfov_degrees / 2)
     cx = (image_size[1] - 1) / 2
     cy = (image_size[0] - 1) / 2
+    
+    # Calculate batch_size dynamically based on image dimensions
+    # Base: 800 for 64x64 (4096 rays), scales proportionately
+    base_rays = 64 * 64  # 4096 rays
+    current_rays = width * height
+    batch_size = int(800 * (current_rays / base_rays))
     
     # Generate random camera poses
     np.random.seed(random_seed)
@@ -335,8 +343,19 @@ def run_optimization(mesh_file, num_fmbs, width, height):
     }
 
 
-def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False):
+def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, grid_size=None, block_size=None):
     """Benchmark and compare CUDA vs JAX implementations using notebook setup."""
+    # Set defaults for grid_size and block_size
+    if grid_size is None:
+        grid_size = dim3(4, 4)
+    else:
+        grid_size = dim3(grid_size[0], grid_size[1])
+    
+    if block_size is None:
+        block_size = dim3(16, 16)
+    else:
+        block_size = dim3(block_size[0], block_size[1])
+    
     kernel_names = {
         0: "original (slow working)",
         1: "FMB-parallelized (warp reduction)",
@@ -441,7 +460,7 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False):
             tran=Vec3D(*trans[view_idx])
         )
         for _ in range(warmup):
-            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, kernel_id=kernel_id)
+            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, grid_size=grid_size, block_size=block_size, kernel_id=kernel_id)
             _ = cuda_image.as_view().depth.as_jax().block_until_ready()
     
     print(f"\nRunning benchmarks: 1000 iterations per view (no time limit, matching notebook)...")
@@ -490,7 +509,7 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False):
         # Benchmark CUDA for this camera pose (ITER_MULT iterations, no time limit)
         for iter_idx in range(ITER_MULT):
             start_time = time.time_ns()  # Use time_ns like notebook
-            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, kernel_id=kernel_id, block=True)
+            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, grid_size=grid_size, block_size=block_size, kernel_id=kernel_id, block=True)
             end_time = time.time_ns()
             elapsed = (end_time - start_time) / 1e3  # microseconds, like notebook
             cuda_times.append(elapsed)  # Store in microseconds like notebook
@@ -933,6 +952,10 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=5, help="Number of warmup iterations (default: 10)")
     parser.add_argument("--kernel-id", type=int, default=0, 
                         help="CUDA kernel ID to use (0=original slow working, 1=FMB-parallelized, default: 0)")
+    parser.add_argument("--grid-size", type=int, nargs=2, default=[4, 4], metavar=('X', 'Y'),
+                        help="Grid size for CUDA kernel (default: 4 4)")
+    parser.add_argument("--block-size", type=int, nargs=2, default=[16, 16], metavar=('X', 'Y'),
+                        help="Block size for CUDA kernel (default: 16 16)")
     parser.add_argument("--force-rerun", action="store_true", help="Force re-run optimization even if cache exists")
     parser.add_argument("--save-plot", action="store_true", help="Save comparison plot as PNG")
     
@@ -954,7 +977,9 @@ if __name__ == "__main__":
         opt_results, 
         kernel_id=args.kernel_id,
         warmup=args.warmup,
-        save_plot=args.save_plot
+        save_plot=args.save_plot,
+        grid_size=args.grid_size,
+        block_size=args.block_size
     )
     
     # NOTE: JSON saving disabled - only plots are saved

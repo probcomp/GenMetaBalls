@@ -12,7 +12,12 @@ from genmetaballs._genmetaballs_bindings.confidence import (
 )
 from genmetaballs._genmetaballs_bindings.fmb import FMB, CPUFMBScene, GPUFMBScene
 from genmetaballs._genmetaballs_bindings.image import CPUImage, GPUImage
-from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, GPUFloatArray2D, sigmoid
+from genmetaballs._genmetaballs_bindings.utils import (
+    CPUFloatArray2D,
+    GPUFloatArray2D,
+    dim3,
+    sigmoid,
+)
 
 type DeviceType = Literal["cpu", "gpu"]
 
@@ -83,6 +88,8 @@ def render_fmbs(
     intr: Intrinsics,
     extr: geometry.Pose,
     img: GPUImage | None = None,
+    grid_size: dim3 = dim3(4, 4),
+    block_size: dim3 = dim3(16, 16),
     kernel_id: int = 0,
     block: bool = False,
 ) -> GPUImage:
@@ -101,7 +108,6 @@ def render_fmbs(
     if img is None:
         img = make_image(intr.height, intr.width, device="gpu")
 
-    render_func = None
     if isinstance(blender, FourParameterBlender):
         if isinstance(confidence, ZeroParameterConfidence):
             render_func = forward.render_fmbs_four_param_zero_confidence
@@ -112,13 +118,21 @@ def render_fmbs(
             render_func = forward.render_fmbs_three_param_zero_confidence
         elif isinstance(confidence, TwoParameterConfidence):
             render_func = forward.render_fmbs_three_param_two_confidence
+    else:
+        raise TypeError("Unsupported blender and confidence combination.")
 
-    if render_func is None:
-        raise TypeError(
-            f"Unsupported blender and confidence combination. Blender: {type(blender)}, Confidence: {type(confidence)}"
-        )
-
-    render_func(fmbs, blender, confidence, intr, extr, img.as_view(), kernel_id, block)
+    render_func(
+        fmbs,
+        blender,
+        confidence,
+        intr,
+        extr,
+        img.as_view(),
+        grid_size,
+        block_size,
+        kernel_id,
+        block,
+    )
     return img
 
 
@@ -135,6 +149,7 @@ __all__ = [
     "Camera",
     "FourParameterBlender",
     "FMB",
+    "dim3",
     "Intrinsics",
     "ThreeParameterBlender",
     "TwoParameterConfidence",
