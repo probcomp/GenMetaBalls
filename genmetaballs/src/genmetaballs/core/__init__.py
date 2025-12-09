@@ -115,7 +115,8 @@ def render_fmbs(
     block: bool = False,
     temp_buffer: GPUTempBuffer | None = None,
     num_fmb_chunks: int = 8,
-) -> GPUImage:
+    return_timings: bool = False,
+) -> GPUImage | forward.KernelTimings:
     """Render the given FMB scene into the provided image view.
 
     If no image is provided, a new image with the dimensions specified by the intrinsics
@@ -129,6 +130,10 @@ def render_fmbs(
         block: Whether to block the GPU until the render is complete.
         temp_buffer: Temporary buffer for kernel_id=1. If None and kernel_id=1, will be auto-created.
         num_fmb_chunks: Number of FMB chunks for kernel_id=1 (default: 8).
+        return_timings: If True, returns KernelTimings object instead of image. Only works for kernel_id=1.
+
+    Returns:
+        GPUImage if return_timings=False, KernelTimings if return_timings=True (kernel_id=1 only).
     """
     if img is None:
         img = make_image(intr.height, intr.width, device="gpu")
@@ -150,7 +155,7 @@ def render_fmbs(
     else:
         raise TypeError("Unsupported blender and confidence combination.")
 
-    render_func(
+    result = render_func(
         fmbs,
         blender,
         confidence,
@@ -163,7 +168,11 @@ def render_fmbs(
         block,
         temp_buffer,  # Pass the TempBuffer object, not the view
         num_fmb_chunks,
+        return_timings,
     )
+    # If timings were requested, result will be a KernelTimings object, otherwise None
+    if return_timings:
+        return result
     return img
 
 

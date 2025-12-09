@@ -2,16 +2,18 @@
 #include <cuda_runtime.h>
 
 #include "core/camera.cuh"
+#include "core/kernels/kernel1.cuh"
 #include "core/temp_buffer.cuh"
 #include "core/utils.cuh"
-#include "core/kernels/kernel1.cuh"
 
 // Simple sum operation for parallel reduction
 struct SumOp {
     using Data = float;
-    
-    static __device__ __forceinline__ Data identity() { return 0.0f; }
-    
+
+    static __device__ __forceinline__ Data identity() {
+        return 0.0f;
+    }
+
     static __device__ __forceinline__ Data combine(Data a, Data b) {
         return a + b;
     }
@@ -24,8 +26,8 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
                                          uint32_t num_fmb_chunks, const Intrinsics& intr) {
     const int px = blockIdx.x * blockDim.x + threadIdx.x;
     const int py = blockIdx.y * blockDim.y + threadIdx.y;
-    const int chunk_idx = threadIdx.z;  // Chunk index from z-dimension
-    const int pixel_in_block = threadIdx.y * blockDim.x + threadIdx.x;  // Unique pixel ID in block
+    const int chunk_idx = threadIdx.z; // Chunk index from z-dimension
+    const int pixel_in_block = threadIdx.y * blockDim.x + threadIdx.x; // Unique pixel ID in block
 
     if (px >= intr.width || py >= intr.height || chunk_idx >= (int)num_fmb_chunks)
         return;
@@ -44,9 +46,9 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
     float* shmem_numer = reinterpret_cast<float*>(shmem_raw);
     float* shmem_denom = shmem_numer + blockDim.x * blockDim.y * blockDim.z;
     float* shmem_conf = shmem_denom + blockDim.x * blockDim.y * blockDim.z;
-    
+
     const int shmem_idx = pixel_in_block * blockDim.z + chunk_idx;
-    
+
     // Store values in shared memory
     shmem_numer[shmem_idx] = depth_numer;
     shmem_denom[shmem_idx] = depth_denom;
@@ -58,20 +60,20 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
     float val_numer = depth_numer;
     float val_denom = depth_denom;
     float val_conf = conf_tmp;
-    
+
     // Reduction phase: build sum tree (inspired by scan up-sweep)
     for (uint32_t delta = 1; delta < blockDim.z; delta <<= 1) {
         if (chunk_idx >= delta) {
             float partial_numer = shmem_numer[pixel_in_block * blockDim.z + chunk_idx - delta];
             float partial_denom = shmem_denom[pixel_in_block * blockDim.z + chunk_idx - delta];
             float partial_conf = shmem_conf[pixel_in_block * blockDim.z + chunk_idx - delta];
-            
+
             val_numer = SumOp::combine(partial_numer, val_numer);
             val_denom = SumOp::combine(partial_denom, val_denom);
             val_conf = SumOp::combine(partial_conf, val_conf);
         }
         __syncthreads();
-        
+
         if (chunk_idx >= delta) {
             shmem_numer[shmem_idx] = val_numer;
             shmem_denom[shmem_idx] = val_denom;

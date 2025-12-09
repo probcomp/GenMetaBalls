@@ -509,6 +509,8 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     
     # Benchmark CUDA: all iterations, no time limit (matching notebook)
     print("\nBenchmarking GenMetaBalls CUDA...")
+    kernel_timings_list = []  # Store individual kernel timings for kernel_id=1
+    
     for view_idx in tqdm(range(len(cameras_list)), desc="GenMetaBalls"):
         # Setup camera pose
         cuda_extr = Pose.from_components(
@@ -518,14 +520,25 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
         
         # Benchmark CUDA for this camera pose (ITER_MULT iterations, no time limit)
         for iter_idx in range(ITER_MULT):
-            start_time = time.time_ns()  # Use time_ns like notebook
-            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, 
-                       img=cuda_image, grid_size=grid_size, block_size=block_size, 
-                       kernel_id=kernel_id, block=True, temp_buffer=cuda_temp_buffer, 
-                       num_fmb_chunks=num_fmb_chunks)
-            end_time = time.time_ns()
-            elapsed = (end_time - start_time) / 1e3  # microseconds, like notebook
-            cuda_times.append(elapsed)  # Store in microseconds like notebook
+            # For kernel_id=1, collect timing info for all iterations
+            if kernel_id == 1:
+                timings = render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, 
+                                     img=cuda_image, grid_size=grid_size, block_size=block_size, 
+                                     kernel_id=kernel_id, block=True, temp_buffer=cuda_temp_buffer, 
+                                     num_fmb_chunks=num_fmb_chunks, return_timings=True)
+                kernel_timings_list.append(timings)
+                # Use total time from timings for consistency
+                cuda_times.append(timings.total_us)
+            else:
+                # Regular timing measurement
+                start_time = time.time_ns()  # Use time_ns like notebook
+                render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, 
+                           img=cuda_image, grid_size=grid_size, block_size=block_size, 
+                           kernel_id=kernel_id, block=True, temp_buffer=cuda_temp_buffer, 
+                           num_fmb_chunks=num_fmb_chunks, return_timings=False)
+                end_time = time.time_ns()
+                elapsed = (end_time - start_time) / 1e3  # microseconds, like notebook
+                cuda_times.append(elapsed)  # Store in microseconds like notebook
             
             # Save result on first iteration - keep as JAX arrays like notebook
             # NOTE: Store RAW depth (unfiltered) - filtering happens in plotting
@@ -563,6 +576,36 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     print(f"  FPS:               {(len(cameras_list) * ITER_MULT) / total_cuda_time_us * 1e6:.2f}")
     print(f"  Average render time per view: {cuda_avg_time_us:.2f} microseconds")
     print(f"  Standard deviation: {cuda_times.std():.2f} microseconds")
+    
+    # Print individual kernel timings for kernel_id=1 (averaged across all iterations)
+    if kernel_id == 1 and len(kernel_timings_list) > 0:
+        # Compute mean across all collected timings
+        mean_1a = np.mean([t.kernel_1a_us for t in kernel_timings_list])
+        mean_1b = np.mean([t.kernel_1b_us for t in kernel_timings_list])
+        mean_1c = np.mean([t.kernel_1c_us for t in kernel_timings_list])
+        mean_total = np.mean([t.total_us for t in kernel_timings_list])
+        
+        # Compute standard deviations
+        std_1a = np.std([t.kernel_1a_us for t in kernel_timings_list])
+        std_1b = np.std([t.kernel_1b_us for t in kernel_timings_list])
+        std_1c = np.std([t.kernel_1c_us for t in kernel_timings_list])
+        std_total = np.std([t.total_us for t in kernel_timings_list])
+        
+        print()
+        print("="*50)
+        print(f"INDIVIDUAL KERNEL TIMINGS (kernel_id=1) - AVERAGED OVER {len(kernel_timings_list)} ITERATIONS:")
+        print("="*50)
+        print(f"  Kernel 1a (FMB chunk processing): {mean_1a:.2f} ± {std_1a:.2f} μs")
+        print(f"  Kernel 1b (Reduction):            {mean_1b:.2f} ± {std_1b:.2f} μs")
+        print(f"  Kernel 1c (Finalization):         {mean_1c:.2f} ± {std_1c:.2f} μs")
+        print(f"  Total (1a + 1b + 1c):             {mean_total:.2f} ± {std_total:.2f} μs")
+        print(f"  Breakdown (based on mean):")
+        if mean_total > 0:
+            print(f"    Kernel 1a: {mean_1a / mean_total * 100:.1f}%")
+            print(f"    Kernel 1b: {mean_1b / mean_total * 100:.1f}%")
+            print(f"    Kernel 1c: {mean_1c / mean_total * 100:.1f}%")
+        print("="*50)
+    
     print()
     speedup = jax_avg_time_us / cuda_avg_time_us
     print()
@@ -721,6 +764,30 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     jax_results_list = [(np.array(depth).tolist(), np.array(alpha).tolist()) for depth, alpha in jax_results_trained]
     cuda_results_list = [(np.array(depth).tolist(), np.array(alpha).tolist()) for depth, alpha in cuda_results]
     
+    # Prepare kernel timings for results dict (averaged values)
+    kernel_timings_dict = None
+    if kernel_id == 1 and len(kernel_timings_list) > 0:
+        mean_1a = np.mean([t.kernel_1a_us for t in kernel_timings_list])
+        mean_1b = np.mean([t.kernel_1b_us for t in kernel_timings_list])
+        mean_1c = np.mean([t.kernel_1c_us for t in kernel_timings_list])
+        mean_total = np.mean([t.total_us for t in kernel_timings_list])
+        std_1a = np.std([t.kernel_1a_us for t in kernel_timings_list])
+        std_1b = np.std([t.kernel_1b_us for t in kernel_timings_list])
+        std_1c = np.std([t.kernel_1c_us for t in kernel_timings_list])
+        std_total = np.std([t.total_us for t in kernel_timings_list])
+        
+        kernel_timings_dict = {
+            'kernel_1a_us_mean': float(mean_1a),
+            'kernel_1b_us_mean': float(mean_1b),
+            'kernel_1c_us_mean': float(mean_1c),
+            'total_us_mean': float(mean_total),
+            'kernel_1a_us_std': float(std_1a),
+            'kernel_1b_us_std': float(std_1b),
+            'kernel_1c_us_std': float(std_1c),
+            'total_us_std': float(std_total),
+            'num_samples': len(kernel_timings_list),
+        }
+    
     results = {
         'jax_times': jax_times.tolist(),
         'cuda_times': cuda_times.tolist(),
@@ -743,6 +810,7 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
         'num_views': len(cameras_list),
         'jax_results': jax_results_list,  # All views
         'cuda_results': cuda_results_list,  # All views
+        'kernel_timings': kernel_timings_dict,
         'cuda_scene_data': {
             'fmbs': [{
                 'pose': {

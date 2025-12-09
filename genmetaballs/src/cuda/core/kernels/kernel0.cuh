@@ -38,4 +38,3 @@ __global__ void render_kernel_original(const FMBScene<MemoryLocation::DEVICE>& f
         img.depth[intr.height - py - 1][px] = depth_numer / depth_denom;
     }
 }
-

@@ -87,6 +87,13 @@ NB_MODULE(_genmetaballs_bindings, m) {
      * Forward (rendering) module bindings
      */
     nb::module_ forward = m.def_submodule("forward", "Forward rendering of FMBs");
+    // Bind KernelTimings once (shared by all render_fmbs variants)
+    nb::class_<KernelTimings>(forward, "KernelTimings")
+        .def_ro("kernel_1a_us", &KernelTimings::kernel_1a_us)
+        .def_ro("kernel_1b_us", &KernelTimings::kernel_1b_us)
+        .def_ro("kernel_1c_us", &KernelTimings::kernel_1c_us)
+        .def_ro("total_us", &KernelTimings::total_us);
+
     bind_render_fmbs<FourParameterBlender, ZeroParameterConfidence>(
         forward, "render_fmbs_four_param_zero_confidence");
     bind_render_fmbs<ThreeParameterBlender, TwoParameterConfidence>(
@@ -358,14 +365,18 @@ void bind_fmb_scene(nb::module_& m, const char* name) {
             return nb::str("{}(size={})").format(name, scene.size());
         });
 }
+// KernelTimings is defined in forward.cuh, which is included above
+
 template <typename Blender, typename Confidence>
 void bind_render_fmbs(nb::module_& m, const char* name) {
+    // KernelTimings is already bound in the main module, no need to bind again
     m.def(
         name,
         [](const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
            const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
            ImageView<MemoryLocation::DEVICE> img, const dim3& grid_size, const dim3& block_size,
-           int kernel_id, bool block, nb::object temp_buffer_obj, uint32_t num_fmb_chunks) {
+           int kernel_id, bool block, nb::object temp_buffer_obj, uint32_t num_fmb_chunks,
+           bool return_timings) -> nb::object {
             // Handle optional temp_buffer: if None, pass nullptr; otherwise extract the view
             TempBufferView<MemoryLocation::DEVICE>* temp_buf_ptr = nullptr;
             TempBufferView<MemoryLocation::DEVICE> temp_view_storage; // Storage for the view
@@ -377,16 +388,25 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
                 temp_view_storage = temp_buf_container.as_view();
                 temp_buf_ptr = &temp_view_storage;
             }
+
+            KernelTimings timings;
+            KernelTimings* timings_ptr = return_timings ? &timings : nullptr;
+
             render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>(
                 fmbs, blender, confidence, intr, extr, img, grid_size, block_size, kernel_id,
-                temp_buf_ptr, num_fmb_chunks);
+                temp_buf_ptr, num_fmb_chunks, timings_ptr);
             if (block) {
                 cudaDeviceSynchronize();
             }
+
+            if (return_timings) {
+                return nb::cast(timings);
+            }
+            return nb::none();
         },
         "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
         nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"), nb::arg("img"),
         nb::arg("grid_size"), nb::arg("block_size"), nb::arg("kernel_id") = 0,
         nb::arg("block") = false, nb::arg("temp_buffer") = nb::none(),
-        nb::arg("num_fmb_chunks") = 8);
+        nb::arg("num_fmb_chunks") = 8, nb::arg("return_timings") = false);
 }

@@ -111,4 +111,3 @@ __global__ void render_kernel_fmb_finalize(TempBufferView<MemoryLocation::DEVICE
     img.confidence[img_row][px] = confidence.get_confidence(conf_tmp);
     img.depth[img_row][px] = (depth_denom > 0.0f) ? (depth_numer / depth_denom) : 0.0f;
 }
-

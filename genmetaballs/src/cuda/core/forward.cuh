@@ -14,9 +14,6 @@
 #include "kernels/kernel0.cuh"
 #include "kernels/kernel1.cuh"
 
-
-
-
 // ============================================================================
 // MAIN RENDER FUNCTION (switches between kernels)
 // ============================================================================
@@ -24,12 +21,21 @@
 // 0 = Original slow working kernel (for verification)
 // 1 = 3-kernel FMB chunk parallelization
 // 2+ = Reserved for future optimizations
+
+// Timing structure for individual kernel timings (in microseconds)
+struct KernelTimings {
+    float kernel_1a_us = 0.0f;
+    float kernel_1b_us = 0.0f;
+    float kernel_1c_us = 0.0f;
+    float total_us = 0.0f;
+};
+
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
 void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
                  const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
                  ImageView<MemoryLocation::DEVICE> img, const dim3 grid_size, const dim3 block_size,
                  int kernel_id, TempBufferView<MemoryLocation::DEVICE>* temp_buffers = nullptr,
-                 uint32_t num_fmb_chunks = 8) {
+                 uint32_t num_fmb_chunks = 8, KernelTimings* timings = nullptr) {
     switch (kernel_id) {
         case 0: {
             // Original slow working kernel (for verification)
@@ -90,22 +96,79 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
                 block_size_3d.z = num_fmb_chunks;
             }
 
+            // Create CUDA events for timing
+            cudaEvent_t start_1a, stop_1a, start_1b, stop_1b, start_1c, stop_1c, start_total,
+                stop_total;
+            if (timings != nullptr) {
+                cudaEventCreate(&start_1a);
+                cudaEventCreate(&stop_1a);
+                cudaEventCreate(&start_1b);
+                cudaEventCreate(&stop_1b);
+                cudaEventCreate(&start_1c);
+                cudaEventCreate(&stop_1c);
+                cudaEventCreate(&start_total);
+                cudaEventCreate(&stop_total);
+                cudaEventRecord(start_total);
+            }
+
+            // Kernel 1a: Process FMB chunks
+            if (timings != nullptr)
+                cudaEventRecord(start_1a);
             render_kernel_fmb_chunk_processing<Getter, Intersector, Blender>
                 <<<grid_size_3d, block_size_3d>>>(fmbs, blender, intr, extr, *temp_buffers,
                                                   num_fmb_chunks, fmb_chunk_size);
-            // Synchronize to ensure kernel 1a completes before kernel 1b
-            cudaDeviceSynchronize();
+            if (timings != nullptr) {
+                cudaEventRecord(stop_1a);
+                cudaEventSynchronize(stop_1a);
+                float ms;
+                cudaEventElapsedTime(&ms, start_1a, stop_1a);
+                timings->kernel_1a_us = ms * 1000.0f; // Convert ms to microseconds
+            } else {
+                cudaDeviceSynchronize();
+            }
 
             // Kernel 1b: Reduce across chunks using parallel sum
             // Allocate shared memory: 3 buffers * (block_size.x * block_size.y * block_size.z)
-            size_t shmem_size = 3 * block_size_3d.x * block_size_3d.y * block_size_3d.z * sizeof(float);
+            size_t shmem_size =
+                3 * block_size_3d.x * block_size_3d.y * block_size_3d.z * sizeof(float);
+            if (timings != nullptr)
+                cudaEventRecord(start_1b);
             render_kernel_fmb_reduce<<<grid_size_3d, block_size_3d, shmem_size>>>(
                 *temp_buffers, num_fmb_chunks, intr);
-            cudaDeviceSynchronize();
+            if (timings != nullptr) {
+                cudaEventRecord(stop_1b);
+                cudaEventSynchronize(stop_1b);
+                float ms;
+                cudaEventElapsedTime(&ms, start_1b, stop_1b);
+                timings->kernel_1b_us = ms * 1000.0f; // Convert ms to microseconds
+            } else {
+                cudaDeviceSynchronize();
+            }
 
             // Kernel 1c: Finalize
+            if (timings != nullptr)
+                cudaEventRecord(start_1c);
             render_kernel_fmb_finalize<Confidence>
                 <<<grid_size, block_size>>>(*temp_buffers, confidence, intr, img);
+            if (timings != nullptr) {
+                cudaEventRecord(stop_1c);
+                cudaEventRecord(stop_total);
+                cudaEventSynchronize(stop_total);
+                float ms;
+                cudaEventElapsedTime(&ms, start_1c, stop_1c);
+                timings->kernel_1c_us = ms * 1000.0f; // Convert ms to microseconds
+                cudaEventElapsedTime(&ms, start_total, stop_total);
+                timings->total_us = ms * 1000.0f; // Convert ms to microseconds
+                // Cleanup events
+                cudaEventDestroy(start_1a);
+                cudaEventDestroy(stop_1a);
+                cudaEventDestroy(start_1b);
+                cudaEventDestroy(stop_1b);
+                cudaEventDestroy(start_1c);
+                cudaEventDestroy(stop_1c);
+                cudaEventDestroy(start_total);
+                cudaEventDestroy(stop_total);
+            }
             break;
         }
         default:
