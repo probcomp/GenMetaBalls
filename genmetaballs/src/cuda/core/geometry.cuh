@@ -38,6 +38,123 @@ CUDA_CALLABLE inline Vec3D cross(const Vec3D a, const Vec3D b) {
     return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
+// CLAUDE TODO add a simple Mat33 type representing 3 x 3 matrices and
+// implement basic CUDA_CALLABLE matrix-matrix and matrix-vector algebraic
+// operations similar to the Vec3D class
+
+struct Mat33 {
+    float m[3][3];
+
+    CUDA_CALLABLE Mat33() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                m[i][j] = 0.0f;
+            }
+        }
+    }
+
+    CUDA_CALLABLE Mat33(float m00, float m01, float m02,
+                        float m10, float m11, float m12,
+                        float m20, float m21, float m22) {
+        m[0][0] = m00; m[0][1] = m01; m[0][2] = m02;
+        m[1][0] = m10; m[1][1] = m11; m[1][2] = m12;
+        m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
+    }
+
+    CUDA_CALLABLE static Mat33 identity() {
+        return Mat33(1.0f, 0.0f, 0.0f,
+                     0.0f, 1.0f, 0.0f,
+                     0.0f, 0.0f, 1.0f);
+    }
+
+    CUDA_CALLABLE Mat33& operator+=(const Mat33& b) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                m[i][j] += b.m[i][j];
+            }
+        }
+        return *this;
+    }
+
+    CUDA_CALLABLE Mat33& operator-=(const Mat33& b) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                m[i][j] -= b.m[i][j];
+            }
+        }
+        return *this;
+    }
+};
+
+// Matrix-matrix multiplication
+CUDA_CALLABLE inline Mat33 operator*(const Mat33& a, const Mat33& b) {
+    Mat33 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = 0.0f;
+            for (int k = 0; k < 3; k++) {
+                result.m[i][j] += a.m[i][k] * b.m[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+// Matrix-vector multiplication
+CUDA_CALLABLE inline Vec3D operator*(const Mat33& a, const Vec3D v) {
+    return {
+        a.m[0][0] * v.x + a.m[0][1] * v.y + a.m[0][2] * v.z,
+        a.m[1][0] * v.x + a.m[1][1] * v.y + a.m[1][2] * v.z,
+        a.m[2][0] * v.x + a.m[2][1] * v.y + a.m[2][2] * v.z
+    };
+}
+
+// Scalar-matrix multiplication
+CUDA_CALLABLE inline Mat33 operator*(const float scalar, const Mat33& a) {
+    Mat33 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = scalar * a.m[i][j];
+        }
+    }
+    return result;
+}
+
+CUDA_CALLABLE inline Mat33 operator*(const Mat33& a, const float scalar) {
+    return scalar * a;
+}
+
+// Matrix addition
+CUDA_CALLABLE inline Mat33 operator+(const Mat33& a, const Mat33& b) {
+    Mat33 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = a.m[i][j] + b.m[i][j];
+        }
+    }
+    return result;
+}
+
+// Matrix subtraction
+CUDA_CALLABLE inline Mat33 operator-(const Mat33& a, const Mat33& b) {
+    Mat33 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = a.m[i][j] - b.m[i][j];
+        }
+    }
+    return result;
+}
+
+// Matrix transpose
+CUDA_CALLABLE inline Mat33 transpose(const Mat33& a) {
+    return Mat33(a.m[0][0], a.m[1][0], a.m[2][0],
+                 a.m[0][1], a.m[1][1], a.m[2][1],
+                 a.m[0][2], a.m[1][2], a.m[2][2]);
+}
+
+// END CLAUDE TODO
+
 class Rotation {
 private:
     float4 unit_quat_;
