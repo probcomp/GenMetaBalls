@@ -47,6 +47,15 @@ from genmetaballs.core import (
 )
 from genmetaballs.fmb.utils import DegradeLR, get_camera_rays
 
+# Optional wandb import
+try:
+    import wandb
+
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+    wandb = None
+
 Pose, Vec3D, Rotation = geometry.Pose, geometry.Vec3D, geometry.Rotation
 
 # Configuration from notebook
@@ -87,7 +96,9 @@ def get_cache_path(project_root, num_fmbs, width, height):
     return cache_file
 
 
-def load_or_run_optimization(mesh_file, num_fmbs, width, height, project_root, force_rerun=False):
+def load_or_run_optimization(
+    mesh_file, num_fmbs, width, height, project_root, force_rerun=False, use_wandb=False
+):
     """Load optimization results from cache or run optimization."""
     cache_file = get_cache_path(project_root, num_fmbs, width, height)
 
@@ -97,7 +108,7 @@ def load_or_run_optimization(mesh_file, num_fmbs, width, height, project_root, f
             return pickle.load(f)
 
     print("Running optimization (this may take a while)...")
-    result = run_optimization(mesh_file, num_fmbs, width, height)
+    result = run_optimization(mesh_file, num_fmbs, width, height, use_wandb=use_wandb)
 
     # Save to cache
     print(f"Saving optimization results to {cache_file}...")
@@ -107,7 +118,7 @@ def load_or_run_optimization(mesh_file, num_fmbs, width, height, project_root, f
     return result
 
 
-def run_optimization(mesh_file, num_fmbs, width, height):
+def run_optimization(mesh_file, num_fmbs, width, height, use_wandb=False):
     """Run the optimization from the notebook to get final parameters."""
     print("Loading mesh and setting up optimization...")
 
@@ -326,6 +337,22 @@ def run_optimization(mesh_file, num_fmbs, width, height):
     print(f"   Initial loss: {losses[0]:.6f}")
     print(f"   Loss reduction: {(1 - losses[-1] / losses[0]) * 100:.1f}%")
 
+    # Log optimization results to wandb if enabled
+    if use_wandb and WANDB_AVAILABLE:
+        try:
+            wandb.log(
+                {
+                    "optimization/total_time_ms": opt_total_time,
+                    "optimization/total_time_sec": opt_total_time / 1000,
+                    "optimization/total_iterations": iteration_count,
+                    "optimization/final_loss": losses[-1],
+                    "optimization/initial_loss": losses[0],
+                    "optimization/loss_reduction_pct": (1 - losses[-1] / losses[0]) * 100,
+                }
+            )
+        except Exception as e:
+            print(f"Warning: Failed to log optimization results to wandb: {e}")
+
     # Get final parameters
     final_params = opt_params(opt_state)
     final_means = final_params[0] / shape_scale_mul
@@ -362,6 +389,7 @@ def benchmark_comparison(
     grid_size=None,
     block_size=None,
     num_fmb_chunks=4,
+    use_wandb=False,
 ):
     """Benchmark and compare CUDA vs JAX implementations using notebook setup."""
     # Set defaults for grid_size and block_size
@@ -397,7 +425,6 @@ def benchmark_comparison(
     final_precs = opt_results["final_precs"]
     final_weight_logs = opt_results["final_weight_logs"]
     shape_scale = opt_results["shape_scale"]
-    center = opt_results["center"]
     cameras_list = opt_results["cameras_list"]
     trans = opt_results["trans"]
     rand_quats = opt_results["rand_quats"]
@@ -408,18 +435,10 @@ def benchmark_comparison(
     beta3 = opt_results["beta3"]
     width = opt_results["width"]
     height = opt_results["height"]
-    num_fmbs = opt_results["num_fmbs"]
 
     # Create random parameters for JAX speed benchmarking (matching notebook Cell 23)
     # NOTE: Notebook uses random parameters for JAX speed benchmarking, not trained
     np.random.seed(random_seed)
-    rand_mean = center + np.random.multivariate_normal(
-        mean=[0, 0, 0], cov=1e-2 * np.identity(3) * shape_scale, size=num_fmbs
-    )
-    rand_weight_log = jnp.log(np.ones(num_fmbs) / num_fmbs) + jnp.log(gmm_init_scale)
-    rand_prec = jnp.array(
-        [np.identity(3) * rand_sphere_size / shape_scale for _ in range(num_fmbs)]
-    )
 
     # NOTE: For plots/accuracy, we use TRAINED parameters (matching notebook Cell 20)
     # For speed benchmarking, we use TRAINED parameters for both JAX and CUDA (fair comparison)
@@ -434,7 +453,7 @@ def benchmark_comparison(
     # Create CUDA scene from optimized parameters (like notebook Cell 22)
     print("Creating CUDA FMB scene from optimized parameters...")
     fmbs = []
-    for final_mean, final_prec in zip(final_means, final_precs):
+    for final_mean, final_prec in zip(final_means, final_precs, strict=True):
         prec_matrix = final_prec @ final_prec.T
         stds, quat = cov_to_isostds_and_quaternion(jnp.linalg.inv(prec_matrix))
         pose = Pose.from_components(Rotation.from_quat(*quat), Vec3D(*final_mean))
@@ -515,7 +534,6 @@ def benchmark_comparison(
     ITER_MULT = 1000  # Match notebook's iter_mult = 1000
 
     jax_times = []
-    jax_results = []  # List of (depth, alpha) tuples for each view (saved on first iteration)
     cuda_times = []
     cuda_results = []  # List of (depth, alpha) tuples for each view (saved on first iteration)
 
@@ -526,7 +544,7 @@ def benchmark_comparison(
         camera_rays = cameras_list[view_idx]
 
         # Benchmark JAX for this camera pose (ITER_MULT iterations, no time limit)
-        for iter_idx in range(ITER_MULT):
+        for _ in range(ITER_MULT):
             beta2_div_shape_scale = beta2 / shape_scale
 
             start_time = time.time_ns()  # Use time_ns like notebook
@@ -621,9 +639,6 @@ def benchmark_comparison(
     jax_avg_time_us = total_jax_time_us / len(cameras_list) / ITER_MULT
     cuda_avg_time_us = total_cuda_time_us / len(cameras_list) / ITER_MULT
 
-    jax_mean_ms = jax_avg_time_us / 1000.0  # Convert microseconds to milliseconds
-    cuda_mean_ms = cuda_avg_time_us / 1000.0  # Convert microseconds to milliseconds
-
     print("\n" + "=" * 80)
     print("SPEED RESULTS:")
     print("=" * 80)
@@ -675,6 +690,30 @@ def benchmark_comparison(
             print(f"    Kernel 1c: {mean_1c / mean_total * 100:.1f}%")
         print("=" * 50)
 
+        # Log kernel timings to wandb if enabled
+        if use_wandb:
+            wandb.log(
+                {
+                    "kernel_timings/kernel_1a_us_mean": float(mean_1a),
+                    "kernel_timings/kernel_1a_us_std": float(std_1a),
+                    "kernel_timings/kernel_1b_us_mean": float(mean_1b),
+                    "kernel_timings/kernel_1b_us_std": float(std_1b),
+                    "kernel_timings/kernel_1c_us_mean": float(mean_1c),
+                    "kernel_timings/kernel_1c_us_std": float(std_1c),
+                    "kernel_timings/total_us_mean": float(mean_total),
+                    "kernel_timings/total_us_std": float(std_total),
+                    "kernel_timings/kernel_1a_pct": mean_1a / mean_total * 100
+                    if mean_total > 0
+                    else 0,
+                    "kernel_timings/kernel_1b_pct": mean_1b / mean_total * 100
+                    if mean_total > 0
+                    else 0,
+                    "kernel_timings/kernel_1c_pct": mean_1c / mean_total * 100
+                    if mean_total > 0
+                    else 0,
+                }
+            )
+
     print()
     speedup = jax_avg_time_us / cuda_avg_time_us
     print()
@@ -689,6 +728,27 @@ def benchmark_comparison(
     else:
         print(f"JAX is {1 / speedup:.2f}x faster than GenMetaBalls")
     print("=" * 50)
+
+    # Log performance metrics to wandb if enabled
+    if use_wandb:
+        wandb.log(
+            {
+                "performance/jax_avg_time_us": jax_avg_time_us,
+                "performance/jax_std_time_us": float(jax_times.std()),
+                "performance/cuda_avg_time_us": cuda_avg_time_us,
+                "performance/cuda_std_time_us": float(cuda_times.std()),
+                "performance/speedup": speedup,
+                "performance/jax_fps": (len(cameras_list) * ITER_MULT) / total_jax_time_us * 1e6,
+                "performance/cuda_fps": (len(cameras_list) * ITER_MULT) / total_cuda_time_us * 1e6,
+            }
+        )
+        # Log timing histograms
+        wandb.log(
+            {
+                "performance/jax_times_hist": wandb.Histogram(jax_times),
+                "performance/cuda_times_hist": wandb.Histogram(cuda_times),
+            }
+        )
 
     # For accuracy comparison, we need to render with TRAINED parameters
     # Create jax_results with trained parameters (matching notebook Cell 20)
@@ -837,6 +897,65 @@ def benchmark_comparison(
     print(f"  Alpha: {'✓ PASS' if alpha_ok else '✗ FAIL'}")
     print("=" * 80)
 
+    # Log accuracy metrics to wandb if enabled
+    if use_wandb:
+        accuracy_metrics = {
+            "accuracy/depth_ok": depth_ok,
+            "accuracy/alpha_ok": alpha_ok,
+        }
+        if depth_mae is not None:
+            accuracy_metrics.update(
+                {
+                    "accuracy/depth_mae": depth_mae,
+                    "accuracy/depth_max_diff": depth_max_diff,
+                    "accuracy/depth_relative_error": depth_relative_error * 100,
+                    "accuracy/depth_median_relative_error": depth_median_relative_error * 100,
+                    "accuracy/valid_pixels": total_valid_pixels,
+                    "accuracy/total_pixels": total_pixels,
+                }
+            )
+        if alpha_mae is not None:
+            accuracy_metrics.update(
+                {
+                    "accuracy/alpha_mae": alpha_mae,
+                    "accuracy/alpha_max_diff": alpha_max_diff,
+                    "accuracy/alpha_relative_error": alpha_relative_error * 100,
+                    "accuracy/alpha_median_relative_error": alpha_median_relative_error * 100,
+                }
+            )
+        wandb.log(accuracy_metrics)
+
+    # Log accuracy metrics to wandb if enabled
+    if use_wandb and WANDB_AVAILABLE:
+        try:
+            accuracy_metrics = {
+                "accuracy/depth_ok": depth_ok,
+                "accuracy/alpha_ok": alpha_ok,
+            }
+            if depth_mae is not None:
+                accuracy_metrics.update(
+                    {
+                        "accuracy/depth_mae": depth_mae,
+                        "accuracy/depth_max_diff": depth_max_diff,
+                        "accuracy/depth_relative_error": depth_relative_error * 100,
+                        "accuracy/depth_median_relative_error": depth_median_relative_error * 100,
+                        "accuracy/valid_pixels": total_valid_pixels,
+                        "accuracy/total_pixels": total_pixels,
+                    }
+                )
+            if alpha_mae is not None:
+                accuracy_metrics.update(
+                    {
+                        "accuracy/alpha_mae": alpha_mae,
+                        "accuracy/alpha_max_diff": alpha_max_diff,
+                        "accuracy/alpha_relative_error": alpha_relative_error * 100,
+                        "accuracy/alpha_median_relative_error": alpha_median_relative_error * 100,
+                    }
+                )
+            wandb.log(accuracy_metrics)
+        except Exception as e:
+            print(f"Warning: Failed to log accuracy metrics to wandb: {e}")
+
     # Create comparison plots if requested (similar to notebook)
     # Use trained parameters for plots
     if save_plot:
@@ -848,6 +967,7 @@ def benchmark_comparison(
             opt_results,
             kernel_id,
             kernel_name,
+            use_wandb=False,  # do not log plots to wandb
         )
 
     # Save results - convert JAX arrays to lists for JSON serialization
@@ -932,7 +1052,13 @@ def benchmark_comparison(
 
 
 def create_comparison_plots(
-    jax_results, cuda_results, alpha_results_final, opt_results, kernel_id, kernel_name
+    jax_results,
+    cuda_results,
+    alpha_results_final,
+    opt_results,
+    kernel_id,
+    kernel_name,
+    use_wandb=False,
 ):
     """Create two comparison plots similar to notebook:
     1. Depth plot: 20 rows × 4 columns (GMB filtered, FMB-JAX filtered, GT placeholder, Diff)
@@ -1054,6 +1180,11 @@ def create_comparison_plots(
         / f"depth_comparison_fmbs{opt_results['num_fmbs']}_size{width}x{height}_kernel{kernel_id}.png"
     )
     plt.savefig(depth_plot_file, dpi=150, bbox_inches="tight")
+
+    # Log plot to wandb if enabled
+    if use_wandb:
+        wandb.log({"plots/depth_comparison": wandb.Image(str(depth_plot_file))})
+
     plt.close()
     print(f"✓ Depth comparison plot saved to {depth_plot_file}")
 
@@ -1130,6 +1261,11 @@ def create_comparison_plots(
         / f"confidence_comparison_fmbs{opt_results['num_fmbs']}_size{width}x{height}_kernel{kernel_id}.png"
     )
     plt.savefig(conf_plot_file, dpi=150, bbox_inches="tight")
+
+    # Log plot to wandb if enabled
+    if use_wandb:
+        wandb.log({"plots/confidence_comparison": wandb.Image(str(conf_plot_file))})
+
     plt.close()
     print(f"✓ Confidence comparison plot saved to {conf_plot_file}")
 
@@ -1188,8 +1324,35 @@ if __name__ == "__main__":
         default=4,
         help="Number of FMB chunks for kernel_id=1 (default: 4)",
     )
+    parser.add_argument(
+        "--use-wandb", action="store_true", help="Enable wandb logging for benchmark results"
+    )
 
     args = parser.parse_args()
+
+    # Initialize wandb if requested
+    use_wandb = args.use_wandb
+    if use_wandb:
+        if not WANDB_AVAILABLE:
+            print("Warning: wandb is not installed. Install it with: pip install wandb")
+            print("Continuing without wandb logging...")
+            use_wandb = False
+        else:
+            wandb.init(
+                entity="metaballers",
+                project="genmetaballs-benchmark",
+                config={
+                    "num_fmbs": args.num_fmbs,
+                    "width": args.width,
+                    "height": args.height,
+                    "kernel_id": args.kernel_id,
+                    "grid_size": "x".join(map(str, args.grid_size)),
+                    "block_size": "x".join(map(str, args.block_size)),
+                    "warmup": args.warmup,
+                    "num_fmb_chunks": args.num_fmb_chunks,
+                    "num_views": num_views,
+                },
+            )
 
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
     mesh_file = PROJECT_ROOT / "data/cow/cow.obj"
@@ -1202,6 +1365,7 @@ if __name__ == "__main__":
         args.height,
         PROJECT_ROOT,
         force_rerun=args.force_rerun,
+        use_wandb=use_wandb,
     )
 
     # Add project_root to opt_results for plot saving
@@ -1222,7 +1386,12 @@ if __name__ == "__main__":
         grid_size=args.grid_size,
         block_size=args.block_size,
         num_fmb_chunks=args.num_fmb_chunks,
+        use_wandb=use_wandb,
     )
+
+    # Finish wandb run if enabled
+    if use_wandb:
+        wandb.finish()
 
     # NOTE: JSON saving disabled - only plots are saved
     # save_benchmark_results(PROJECT_ROOT, results, args.num_fmbs, args.width, args.height, args.kernel_id)

@@ -9,3 +9,4 @@ build/
 scripts/data/benchmark_cache
 *.aux
 *.log
+/wandb/
