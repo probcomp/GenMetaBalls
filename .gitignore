@@ -7,3 +7,5 @@ build/
 /.pixi/
 
 scripts/data/benchmark_cache
+*.aux
+*.log
