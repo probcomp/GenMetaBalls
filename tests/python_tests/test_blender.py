@@ -122,7 +122,7 @@ def test_three_parameter_blender_single_value(rng_seed: int, blender_kwargs: dic
     eta = blender_kwargs["eta"]
 
     expected = np.exp((beta1 * di) - ((beta2 / eta) * ti))
-    actual = blender.blend(t=ti, d=di)
+    actual = blender.blend(di, ti)
 
     # check close (rtol can be tight since it's directly a float formula)
     assert np.isclose(actual, expected, rtol=1e-6) or (np.isnan(actual) and np.isnan(expected))

@@ -8,6 +8,10 @@ CUDA_CALLABLE Rotation Rotation::from_quat(float x, float y, float z, float w) {
     return Rotation{{x / modulus, y / modulus, z / modulus, w / modulus}};
 }
 
+CUDA_CALLABLE const float4& Rotation::get_quat() const {
+    return unit_quat_;
+}
+
 CUDA_CALLABLE Vec3D Rotation::apply(const Vec3D vec) const {
     // v' = q * v * q^(-1) for unit quaternions
     // where q^(-1) = (-x, -y, -z, w)

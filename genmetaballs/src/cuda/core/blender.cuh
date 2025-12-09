@@ -21,7 +21,7 @@ struct ThreeParameterBlender {
     float beta2;
     float eta;
 
-    CUDA_CALLABLE __forceinline__ float blend(float t, float d) const {
-        return expf((beta1 * d) - ((beta2 / eta) * t));
+    CUDA_CALLABLE __forceinline__ float blend(float tmp, float d) const {
+        return expf((beta1 * tmp) - ((beta2 / eta) * d));
     }
 };

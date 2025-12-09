@@ -49,6 +49,8 @@ public:
 
     static CUDA_CALLABLE Rotation from_quat(float x, float y, float z, float w);
 
+    CUDA_CALLABLE const float4& get_quat() const;
+
     CUDA_CALLABLE Vec3D apply(const Vec3D vec) const;
 
     CUDA_CALLABLE Rotation compose(const Rotation& rot) const;

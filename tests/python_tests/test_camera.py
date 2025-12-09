@@ -12,7 +12,7 @@ def rng() -> np.random.Generator:
 
 @pytest.fixture
 def intrinsics() -> Intrinsics:
-    return Intrinsics(height=480, width=640, fx=500.0, fy=520.0, cx=320.0, cy=240.0)
+    return Intrinsics(width=640, height=480, fx=500.0, fy=520.0, cx=320.0, cy=240.0)
 
 
 def test_get_ray_direction_in_camera_frame(intrinsics: Intrinsics):
