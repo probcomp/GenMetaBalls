@@ -12,7 +12,12 @@ from genmetaballs._genmetaballs_bindings.confidence import (
 )
 from genmetaballs._genmetaballs_bindings.fmb import FMB, CPUFMBScene, GPUFMBScene
 from genmetaballs._genmetaballs_bindings.image import CPUImage, GPUImage
-from genmetaballs._genmetaballs_bindings.utils import CPUFloatArray2D, GPUFloatArray2D, sigmoid
+from genmetaballs._genmetaballs_bindings.utils import (
+    CPUFloatArray2D,
+    GPUFloatArray2D,
+    dim3,
+    sigmoid,
+)
 
 type DeviceType = Literal["cpu", "gpu"]
 
@@ -83,6 +88,8 @@ def render_fmbs(
     intr: Intrinsics,
     extr: geometry.Pose,
     img: GPUImage | None = None,
+    grid_size: dim3 = dim3(4, 4),
+    block_size: dim3 = dim3(16, 16),
 ) -> GPUImage:
     """Render the given FMB scene into the provided image view.
 
@@ -105,7 +112,7 @@ def render_fmbs(
     else:
         raise TypeError("Unsupported blender and confidence combination.")
 
-    render_func(fmbs, blender, confidence, intr, extr, img.as_view())
+    render_func(fmbs, blender, confidence, intr, extr, img.as_view(), grid_size, block_size)
     return img
 
 
@@ -122,6 +129,7 @@ __all__ = [
     "Camera",
     "FourParameterBlender",
     "FMB",
+    "dim3",
     "Intrinsics",
     "ThreeParameterBlender",
     "TwoParameterConfidence",
