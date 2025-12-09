@@ -49,10 +49,10 @@ struct PixelCoordRange {
     // the Sentinel class only needs to hold the stop value (i.e. final row)
     struct Sentinel {
         uint32_t py_end;
-
-        // stopping criterion: true if current row (py) reaches py_end
-        CUDA_CALLABLE bool operator==(const Iterator& it) const;
     };
+
+    // stopping criterion: true if current row (py) reaches py_end
+    friend CUDA_CALLABLE bool operator!=(const Iterator& it, const Sentinel& sentinel);
 
     // range methods
     CUDA_CALLABLE Iterator begin() const;
