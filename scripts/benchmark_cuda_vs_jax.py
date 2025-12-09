@@ -344,7 +344,7 @@ def run_optimization(mesh_file, num_fmbs, width, height):
     }
 
 
-def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, grid_size=None, block_size=None):
+def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, grid_size=None, block_size=None, num_fmb_chunks=4):
     """Benchmark and compare CUDA vs JAX implementations using notebook setup."""
     # Set defaults for grid_size and block_size
     if grid_size is None:
@@ -447,7 +447,6 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     
     # Create temp_buffer for kernel_id=1
     cuda_temp_buffer = None
-    num_fmb_chunks = 8  # Default number of FMB chunks
     if kernel_id == 1:
         print(f"Creating temp_buffer for kernel_id=1 (num_fmb_chunks={num_fmb_chunks})...")
         cuda_temp_buffer = make_temp_buffer(height, width, num_fmb_chunks, device="gpu")
@@ -972,6 +971,8 @@ if __name__ == "__main__":
                         help="Block size for CUDA kernel (default: 16 16)")
     parser.add_argument("--force-rerun", action="store_true", help="Force re-run optimization even if cache exists")
     parser.add_argument("--save-plot", action="store_true", help="Save comparison plot as PNG")
+    parser.add_argument("--num-fmb-chunks", type=int, default=4, 
+                        help="Number of FMB chunks for kernel_id=1 (default: 4)")
     
     args = parser.parse_args()
     
@@ -993,7 +994,8 @@ if __name__ == "__main__":
         warmup=args.warmup,
         save_plot=args.save_plot,
         grid_size=args.grid_size,
-        block_size=args.block_size
+        block_size=args.block_size,
+        num_fmb_chunks=args.num_fmb_chunks
     )
     
     # NOTE: JSON saving disabled - only plots are saved

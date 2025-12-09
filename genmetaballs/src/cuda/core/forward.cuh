@@ -96,10 +96,11 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             // Synchronize to ensure kernel 1a completes before kernel 1b
             cudaDeviceSynchronize();
 
-            // Kernel 1b: Reduce across chunks
-            render_kernel_fmb_reduce<<<grid_size, block_size>>>(*temp_buffers, num_fmb_chunks,
-                                                                intr);
-            // Synchronize to ensure kernel 1b completes before kernel 1c
+            // Kernel 1b: Reduce across chunks using parallel sum
+            // Allocate shared memory: 3 buffers * (block_size.x * block_size.y * block_size.z)
+            size_t shmem_size = 3 * block_size_3d.x * block_size_3d.y * block_size_3d.z * sizeof(float);
+            render_kernel_fmb_reduce<<<grid_size_3d, block_size_3d, shmem_size>>>(
+                *temp_buffers, num_fmb_chunks, intr);
             cudaDeviceSynchronize();
 
             // Kernel 1c: Finalize
