@@ -114,9 +114,15 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             // Kernel 1a: Process FMB chunks
             if (timings != nullptr)
                 cudaEventRecord(start_1a);
+            // Calculate shared memory for FMB cache
+            // CachedFMB: ~48 bytes (with alignment), cache ALL FMBs
+            const size_t total_fmbs = fmbs.size();
+            const size_t fmb_cache_shmem =
+                total_fmbs * 48; // CachedFMB size with alignment (48 bytes per FMB)
+
             render_kernel_fmb_chunk_processing<Getter, Intersector, Blender>
-                <<<grid_size_3d, block_size_3d>>>(fmbs, blender, intr, extr, *temp_buffers,
-                                                  num_fmb_chunks, fmb_chunk_size);
+                <<<grid_size_3d, block_size_3d, fmb_cache_shmem>>>(
+                    fmbs, blender, intr, extr, *temp_buffers, num_fmb_chunks, fmb_chunk_size);
             if (timings != nullptr) {
                 cudaEventRecord(stop_1a);
                 cudaEventSynchronize(stop_1a);

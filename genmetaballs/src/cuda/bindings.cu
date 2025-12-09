@@ -377,12 +377,15 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
            ImageView<MemoryLocation::DEVICE> img, const dim3& grid_size, const dim3& block_size,
            int kernel_id, bool block, nb::object temp_buffer_view_obj, uint32_t num_fmb_chunks,
            bool return_timings) -> nb::object {
-            // Handle optional temp_buffer_view: if None, pass nullptr; otherwise use the view directly
+            // Handle optional temp_buffer_view: if None, pass nullptr; otherwise use the view
+            // directly
             TempBufferView<MemoryLocation::DEVICE>* temp_buf_ptr = nullptr;
             TempBufferView<MemoryLocation::DEVICE> temp_view_storage; // Storage for the view
             if (!temp_buffer_view_obj.is_none()) {
-                // Get the TempBufferView object directly (already created from Python with .as_view())
-                temp_view_storage = nb::cast<TempBufferView<MemoryLocation::DEVICE>>(temp_buffer_view_obj);
+                // Get the TempBufferView object directly (already created from Python with
+                // .as_view())
+                temp_view_storage =
+                    nb::cast<TempBufferView<MemoryLocation::DEVICE>>(temp_buffer_view_obj);
                 temp_buf_ptr = &temp_view_storage;
             }
 
