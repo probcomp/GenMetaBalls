@@ -1054,6 +1054,12 @@ if __name__ == "__main__":
     
     # Add project_root to opt_results for plot saving
     opt_results['project_root'] = PROJECT_ROOT
+
+    # print the grid size and block size
+    print(f"Grid size: {args.grid_size}")
+    print(f"Block size: {args.block_size}")
+    if args.kernel_id == 1:
+        print(f"Number of FMB chunks: {args.num_fmb_chunks}")
     
     # Run benchmark
     results = benchmark_comparison(

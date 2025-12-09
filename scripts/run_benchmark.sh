@@ -1,0 +1,1 @@
+pixi run python scripts/benchmark_cuda_vs_jax.py --kernel-id 1 --num-fmbs 400 --width 64 --height 64 --save-plot --warmup 1 --grid-size 8 8 --block-size 8 8 --num-fmb-chunks 8

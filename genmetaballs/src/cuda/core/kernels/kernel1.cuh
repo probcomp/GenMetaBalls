@@ -13,6 +13,7 @@
 
 // Kernel 1a: Process FMB chunks in parallel
 // Parallelizes over pixels (2D grid) AND FMB chunks (3rd dimension in block)
+// Uses coalesced memory access pattern: threads in same warp access consecutive FMB indices
 template <typename Getter, typename Intersector, typename Blender>
 __global__ void render_kernel_fmb_chunk_processing(
     const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender, const Intrinsics& intr,
@@ -33,16 +34,24 @@ __global__ void render_kernel_fmb_chunk_processing(
     const auto& fmb_scene = fmb_getter.get_metaballs(ray);
     const int num_fmbs = fmb_scene.size();
 
-    // Process FMBs for this chunk
+    // Process FMBs for this chunk with COALESCED access pattern
+    // Instead of: thread 0 accesses FMBs 0-9, thread 1 accesses FMBs 10-19, etc.
+    // We do: thread 0 accesses FMBs 0,4,8,12..., thread 1 accesses FMBs 1,5,9,13..., etc.
+    // This ensures threads in the same warp access consecutive FMB indices (coalesced)
     float depth_numer = 0.0f;
     float depth_denom = 0.0f;
     float conf_tmp = 0.0f;
 
-    const int start_fmb_idx = fmb_chunk_idx * fmb_chunk_size;
-    const int end_fmb_idx =
-        (start_fmb_idx + fmb_chunk_size < num_fmbs) ? (start_fmb_idx + fmb_chunk_size) : num_fmbs;
+    // Coalesced access: each thread processes FMBs with stride = num_fmb_chunks
+    // Thread 0 (chunk 0): FMBs 0, 4, 8, 12, ...
+    // Thread 1 (chunk 1): FMBs 1, 5, 9, 13, ...
+    // Thread 2 (chunk 2): FMBs 2, 6, 10, 14, ...
+    // Thread 3 (chunk 3): FMBs 3, 7, 11, 15, ...
+    // This way, when all threads access their first FMB, they access 0,1,2,3 (coalesced!)
+    const int start_fmb_idx = fmb_chunk_idx; // Start at chunk index, not chunk * chunk_size
+    const int stride = num_fmb_chunks;       // Stride by number of chunks
 
-    for (int fmb_idx = start_fmb_idx; fmb_idx < end_fmb_idx; ++fmb_idx) {
+    for (int fmb_idx = start_fmb_idx; fmb_idx < num_fmbs; fmb_idx += stride) {
         const auto& [fmb, lambda] = fmb_scene[fmb_idx];
 
         // Match original computation exactly
