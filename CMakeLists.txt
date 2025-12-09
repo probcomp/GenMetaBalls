@@ -86,26 +86,31 @@ install(TARGETS _genmetaballs_bindings LIBRARY DESTINATION genmetaballs)
 # Testing      #
 ################
 
-enable_testing()
+# Option to disable tests for faster compilation
+option(BUILD_TESTS "Build C++/CUDA tests" ON)
 
-# Find GTest
-find_package(GTest CONFIG REQUIRED)
+if(BUILD_TESTS)
+    enable_testing()
 
-# C++/CUDA test executable
-file(GLOB CPP_CUDA_TEST_SOURCES tests/cpp_tests/*.cu tests/cpp_tests/*.cpp)
-add_executable(cpp_tests ${CPP_CUDA_TEST_SOURCES})
+    # Find GTest
+    find_package(GTest CONFIG REQUIRED)
 
-target_link_libraries(cpp_tests
-  PRIVATE
-    genmetaballs_core
-    GTest::gtest
-    GTest::gtest_main
-)
+    # C++/CUDA test executable
+    file(GLOB CPP_CUDA_TEST_SOURCES tests/cpp_tests/*.cu tests/cpp_tests/*.cpp)
+    add_executable(cpp_tests ${CPP_CUDA_TEST_SOURCES})
 
-# Enable CUDA for the test executable
-set_target_properties(cpp_tests PROPERTIES
-  CUDA_SEPARABLE_COMPILATION ON
-)
+    target_link_libraries(cpp_tests
+      PRIVATE
+        genmetaballs_core
+        GTest::gtest
+        GTest::gtest_main
+    )
 
-include(GoogleTest)
-gtest_discover_tests(cpp_tests)
+    # Enable CUDA for the test executable
+    set_target_properties(cpp_tests PROPERTIES
+      CUDA_SEPARABLE_COMPILATION ON
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(cpp_tests)
+endif()

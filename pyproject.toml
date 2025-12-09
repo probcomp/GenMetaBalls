@@ -72,6 +72,9 @@ wheel.packages = ["genmetaballs/src/genmetaballs"]
 # use a persistent build directory to speed up rebuild & testing
 build-dir = "build"
 editable.rebuild = true
+# CMake args: set BUILD_TESTS=OFF to disable tests for faster compilation
+# You can override this by setting CMAKE_ARGS environment variable
+cmake.args = ["-DBUILD_TESTS=OFF"]
 
 [dependency-groups]
 dev = [
