@@ -34,6 +34,7 @@ from genmetaballs.core import (
     geometry,
     make_fmb_scene_from_values,
     make_image,
+    make_temp_buffer,
     render_fmbs,
     dim3,
 )
@@ -358,7 +359,7 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     
     kernel_names = {
         0: "original (slow working)",
-        1: "FMB-parallelized (warp reduction)",
+        1: "3-kernel FMB chunk parallelization",
     }
     kernel_name = kernel_names.get(kernel_id, f"kernel_{kernel_id}")
     
@@ -444,6 +445,13 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
     # Preallocate CUDA image object to exclude allocation time from benchmark
     cuda_image = make_image(height, width, device="gpu")
     
+    # Create temp_buffer for kernel_id=1
+    cuda_temp_buffer = None
+    num_fmb_chunks = 8  # Default number of FMB chunks
+    if kernel_id == 1:
+        print(f"Creating temp_buffer for kernel_id=1 (num_fmb_chunks={num_fmb_chunks})...")
+        cuda_temp_buffer = make_temp_buffer(height, width, num_fmb_chunks, device="gpu")
+    
     # Warmup each camera pose for both implementations
     print("Warming up each camera pose...")
     for view_idx in tqdm(range(len(cameras_list)), desc="Warmup"):
@@ -460,7 +468,10 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
             tran=Vec3D(*trans[view_idx])
         )
         for _ in range(warmup):
-            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, grid_size=grid_size, block_size=block_size, kernel_id=kernel_id)
+            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, 
+                       img=cuda_image, grid_size=grid_size, block_size=block_size, 
+                       kernel_id=kernel_id, temp_buffer=cuda_temp_buffer, 
+                       num_fmb_chunks=num_fmb_chunks)
             _ = cuda_image.as_view().depth.as_jax().block_until_ready()
     
     print(f"\nRunning benchmarks: 1000 iterations per view (no time limit, matching notebook)...")
@@ -509,7 +520,10 @@ def benchmark_comparison(opt_results, kernel_id=0, warmup=10, save_plot=False, g
         # Benchmark CUDA for this camera pose (ITER_MULT iterations, no time limit)
         for iter_idx in range(ITER_MULT):
             start_time = time.time_ns()  # Use time_ns like notebook
-            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, img=cuda_image, grid_size=grid_size, block_size=block_size, kernel_id=kernel_id, block=True)
+            render_fmbs(cuda_scene, cuda_blender, cuda_confidence, cuda_intr, cuda_extr, 
+                       img=cuda_image, grid_size=grid_size, block_size=block_size, 
+                       kernel_id=kernel_id, block=True, temp_buffer=cuda_temp_buffer, 
+                       num_fmb_chunks=num_fmb_chunks)
             end_time = time.time_ns()
             elapsed = (end_time - start_time) / 1e3  # microseconds, like notebook
             cuda_times.append(elapsed)  # Store in microseconds like notebook

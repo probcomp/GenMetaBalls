@@ -15,6 +15,7 @@
 #include "core/getter.cuh"
 #include "core/image.cuh"
 #include "core/intersector.cuh"
+#include "core/temp_buffer.cuh"
 #include "core/utils.cuh"
 
 namespace nb = nanobind;
@@ -25,6 +26,10 @@ template <MemoryLocation location>
 void bind_image(nb::module_& m, const char* name);
 template <MemoryLocation location>
 void bind_image_view(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_temp_buffer_view(nb::module_& m, const char* name);
+template <MemoryLocation location>
+void bind_temp_buffer(nb::module_& m, const char* name);
 template <MemoryLocation location>
 void bind_fmb_scene(nb::module_& m, const char* name);
 template <typename Blender, typename Confidence>
@@ -177,6 +182,8 @@ NB_MODULE(_genmetaballs_bindings, m) {
     bind_image<MemoryLocation::HOST>(image, "CPUImage");
     bind_image_view<MemoryLocation::DEVICE>(image, "GPUImageView");
     bind_image<MemoryLocation::DEVICE>(image, "GPUImage");
+    bind_temp_buffer_view<MemoryLocation::DEVICE>(image, "GPUTempBufferView");
+    bind_temp_buffer<MemoryLocation::DEVICE>(image, "GPUTempBuffer");
 
     /*
      * Intersector module bindings
@@ -300,6 +307,34 @@ void bind_image(nb::module_& m, const char* name) {
 }
 
 template <MemoryLocation location>
+void bind_temp_buffer_view(nb::module_& m, const char* name) {
+    nb::class_<TempBufferView<location>>(m, name)
+        .def_prop_ro("num_rows", &TempBufferView<location>::num_rows)
+        .def_prop_ro("num_cols", &TempBufferView<location>::num_cols)
+        .def_prop_ro("num_fmb_chunks", &TempBufferView<location>::num_fmb_chunks)
+        .def("__repr__", [=](const TempBufferView<location>& view) {
+            return nb::str("{}(height={}, width={}, num_fmb_chunks={})")
+                .format(name, view.num_rows(), view.num_cols(), view.num_fmb_chunks());
+        });
+}
+
+template <MemoryLocation location>
+void bind_temp_buffer(nb::module_& m, const char* name) {
+    nb::class_<TempBuffer<location>>(m, name)
+        .def(nb::init<uint32_t, uint32_t, uint32_t>(), nb::arg("height"), nb::arg("width"),
+             nb::arg("num_fmb_chunks"))
+        .def_prop_ro("num_rows", &TempBuffer<location>::num_rows)
+        .def_prop_ro("num_cols", &TempBuffer<location>::num_cols)
+        .def_prop_ro("num_fmb_chunks", &TempBuffer<location>::num_fmb_chunks)
+        .def("as_view", &TempBuffer<location>::as_view,
+             "Get a view of the temp buffer data as TempBufferView")
+        .def("__repr__", [=](const TempBuffer<location>& buf) {
+            return nb::str("{}(height={}, width={}, num_fmb_chunks={})")
+                .format(name, buf.num_rows(), buf.num_cols(), buf.num_fmb_chunks());
+        });
+}
+
+template <MemoryLocation location>
 void bind_fmb_scene(nb::module_& m, const char* name) {
     nb::class_<FMBScene<location>>(m, name)
         .def(nb::init<size_t>(), nb::arg("size"))
@@ -330,9 +365,21 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
         [](const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
            const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
            ImageView<MemoryLocation::DEVICE> img, const dim3& grid_size, const dim3& block_size,
-           int kernel_id = 0, bool block = false) {
+           int kernel_id, bool block, nb::object temp_buffer_obj, uint32_t num_fmb_chunks) {
+            // Handle optional temp_buffer: if None, pass nullptr; otherwise extract the view
+            TempBufferView<MemoryLocation::DEVICE>* temp_buf_ptr = nullptr;
+            TempBufferView<MemoryLocation::DEVICE> temp_view_storage; // Storage for the view
+            if (!temp_buffer_obj.is_none()) {
+                // Get the TempBuffer object and extract its view
+                auto temp_buf_container =
+                    nb::cast<TempBuffer<MemoryLocation::DEVICE>>(temp_buffer_obj);
+                // Store the view in a local variable that lives for the duration of the call
+                temp_view_storage = temp_buf_container.as_view();
+                temp_buf_ptr = &temp_view_storage;
+            }
             render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>(
-                fmbs, blender, confidence, intr, extr, img, grid_size, block_size, kernel_id);
+                fmbs, blender, confidence, intr, extr, img, grid_size, block_size, kernel_id,
+                temp_buf_ptr, num_fmb_chunks);
             if (block) {
                 cudaDeviceSynchronize();
             }
@@ -340,5 +387,6 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
         "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
         nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"), nb::arg("img"),
         nb::arg("grid_size"), nb::arg("block_size"), nb::arg("kernel_id") = 0,
-        nb::arg("block") = false);
+        nb::arg("block") = false, nb::arg("temp_buffer") = nb::none(),
+        nb::arg("num_fmb_chunks") = 8);
 }
