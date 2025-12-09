@@ -375,17 +375,14 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
         [](const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
            const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
            ImageView<MemoryLocation::DEVICE> img, const dim3& grid_size, const dim3& block_size,
-           int kernel_id, bool block, nb::object temp_buffer_obj, uint32_t num_fmb_chunks,
+           int kernel_id, bool block, nb::object temp_buffer_view_obj, uint32_t num_fmb_chunks,
            bool return_timings) -> nb::object {
-            // Handle optional temp_buffer: if None, pass nullptr; otherwise extract the view
+            // Handle optional temp_buffer_view: if None, pass nullptr; otherwise use the view directly
             TempBufferView<MemoryLocation::DEVICE>* temp_buf_ptr = nullptr;
             TempBufferView<MemoryLocation::DEVICE> temp_view_storage; // Storage for the view
-            if (!temp_buffer_obj.is_none()) {
-                // Get the TempBuffer object and extract its view
-                auto temp_buf_container =
-                    nb::cast<TempBuffer<MemoryLocation::DEVICE>>(temp_buffer_obj);
-                // Store the view in a local variable that lives for the duration of the call
-                temp_view_storage = temp_buf_container.as_view();
+            if (!temp_buffer_view_obj.is_none()) {
+                // Get the TempBufferView object directly (already created from Python with .as_view())
+                temp_view_storage = nb::cast<TempBufferView<MemoryLocation::DEVICE>>(temp_buffer_view_obj);
                 temp_buf_ptr = &temp_view_storage;
             }
 

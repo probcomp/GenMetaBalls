@@ -155,6 +155,11 @@ def render_fmbs(
     else:
         raise TypeError("Unsupported blender and confidence combination.")
 
+    # Convert temp_buffer to view (like img.as_view()) if provided
+    temp_buffer_view = None
+    if temp_buffer is not None:
+        temp_buffer_view = temp_buffer.as_view()
+
     result = render_func(
         fmbs,
         blender,
@@ -166,7 +171,7 @@ def render_fmbs(
         block_size,
         kernel_id,
         block,
-        temp_buffer,  # Pass the TempBuffer object, not the view
+        temp_buffer_view,  # Pass the TempBufferView (like ImageView)
         num_fmb_chunks,
         return_timings,
     )

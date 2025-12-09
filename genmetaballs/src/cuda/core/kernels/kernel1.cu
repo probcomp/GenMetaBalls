@@ -62,6 +62,7 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
     float val_conf = conf_tmp;
 
     // Reduction phase: build sum tree (inspired by scan up-sweep)
+    // Standard up-sweep reduction pattern
     for (uint32_t delta = 1; delta < blockDim.z; delta <<= 1) {
         if (chunk_idx >= delta) {
             float partial_numer = shmem_numer[pixel_in_block * blockDim.z + chunk_idx - delta];
