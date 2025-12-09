@@ -34,11 +34,12 @@ we write $\pi\cdot v$ to denote $v$ transformed by $\pi$.
 | $v_{ij}$ | $S^2$ | direction of the ray corresponding to pixel $(i, j)$ in the camera frame |
 | $\pi^{(t)}$ | $\SE(3)$ | camera pose in world frame at frame $t$ |
 | $\mu_k$ | $\R^3$ | the mean vector of the $k$-the fuzzy metaball |
-| $\Sigma_k$ | $\R^{3\times 3}_{\succ 0}$ | the covariance matrix of the $k$-the fuzzy metaball |
+| $\Pi_k$ | $\R^{3\times 3}_{\succ 0}$ | the precision matrix (inverse covariance) of the $k$-the fuzzy metaball |
 | $\lambda_k$ | $\R$ | log-weight of the $k$-the fuzzy metaball |
 | $d_{ijk}^{(t)}$    | $\R$ | intersection depth of ray corresponding to pixel $(i, j)$ at frame $t$ with the $k$-th fuzzy metaball |
 | $q_{ijk}^{(t)}$    | $\R$ | the value of the quadratic form of $k$-th fuzzy metaball at the intersection of ray $(i, j)$ at frame $t$ |
-| $w_{ijk}^{(t)}$    | $\R$ | depth blending weight of the $k$-th fuzzy metaball for pixel $(i, j)$ at frame $t$ |
+| $\tilde{l}_{ijk}^{(t)}$    | $\R$ | likelihood exponent of the $k$-th fuzzy metaball for pixel $(i, j)$ at frame $t$ |
+| $\tilde{w}_{ijk}^{(t)}$    | $\R$ | unnormalized depth blending weight of the $k$-th fuzzy metaball for pixel $(i, j)$ at frame $t$ |
 | $\bar{d}_{ij}^{(t)}$    | $\R$ | depth value of pixel $(i, j)$ at frame $t$ |
 | $c_{ij}^{(t)}$    | $[0, 1]$ | confidence value of pixel $(i, j)$ at frame $t$ |
 | $\L_c$    | $\R$ | contour loss  (a function of $c_{ij}^{(t)}$) |
@@ -48,19 +49,19 @@ we write $\pi\cdot v$ to denote $v$ transformed by $\pi$.
 ## Forward Pass
 
 \begin{align*}
-%\argmax_{d \in \R} (\mu_k - \Delta x^{(t)} - dv_{ij}^{(t)})^\top
-%\Sigma^{-1} (\mu_k - \Delta x^{(t)} - dv_{ij}^{(t)}) \\
 (\tau^{(t)}, \rho^{(t)}) &:= \pi^{(t)} \\
 v_{ij}^{(t)} &:= \rho^{(t)}v_{ij} \\
-d_{ijk}^{(t)} &:= \frac{(\mu_k - \tau^{(t)})^\top\Sigma_k^{-1}v_{ij}^{(t)}}
-    {{v_{ij}^{(t)}}^\top\Sigma_k^{-1}v_{ij}^{(t)}} \\
+d_{ijk}^{(t)} &:= \frac{(\mu_k - \tau^{(t)})^\top\Pi_kv_{ij}^{(t)}}
+    {{v_{ij}^{(t)}}^\top\Pi_kv_{ij}^{(t)}} \\
 q_{ijk}^{(t)} &:= (\mu_k - \tau^{(t)} - d_{ijk}^{(t)}v_{ij}^{(t)})^\top
-    \Sigma_k^{-1} (\mu_k - \tau^{(t)} - d_{ijk}^{(t)}v_{ij}^{(t)}) \\
+    \Pi_k (\mu_k - \tau^{(t)} - d_{ijk}^{(t)}v_{ij}^{(t)}) \\
+\tilde{l}_{ijk}^{(t)} &:= -\frac{1}{2} q_{ijk}^{(t)} + \lambda_k \\
 \tilde{w}_{ijk}^{(t)} &:=
-    \exp\left(\beta_1(-q_{ijk}^{(t)}/2 + \lambda_k) - \beta_2 d_{ijk}^{(t)}\right) \\
-w_{ijk}^{(t)} &:= \frac{\tilde{w}_{ijk}^{(t)}}{\sum_{k=1}^N \tilde{w}_{ijk}^{(t)}} \\
-\bar{d}_{ij}^{(t)} &:= \sum_{k=1}^N w_{ijk}^{(t)} d_{ijk}^{(t)} \\
-c_{ij}^{(t)} &:= 1 - \exp\left(\sum_{k=1} \exp(q_{ijk}^{(t)}/2 - \lambda_k)\right)
+    \exp\left(\beta_1 \tilde{l}_{ijk}^{(t)} - \beta_2 d_{ijk}^{(t)}\right) \\
+\bar{d}_{ij}^{(t)} &:=
+    \frac{\sum_{k=1}^N \tilde{w}_{ijk}^{(t)} d_{ijk}^{(t)}}
+         {\sum_{k=1}^N \tilde{w}_{ijk}^{(t)}} \\
+c_{ij}^{(t)} &:= 1 - \exp\left(-\sum_{k=1} \exp\left(\tilde{l}_{ijk}^{(t)}\right)\right)
 \end{align*}
 
 ![Dependency graph of the variables in the forward pass using plate
@@ -104,11 +105,11 @@ notation](plate_diagram.png){width=540}
         \frac{\partial q_{ijk}^{(t)}}{\partial \mu_k}
     + \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
         \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k} \\
-\frac{\partial \L_d}{\partial \Sigma_k} &= 
+\frac{\partial \L_d}{\partial \Pi_k} &= 
     \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial q_{ijk}^{(t)}}
-        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Pi_k}
     + \sum_t \sum_{i, j} \frac{\partial \L_d}{\partial d_{ijk}^{(t)}}
-        \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k} \\
+        \frac{\partial d_{ijk}^{(t)}}{\partial \Pi_k} \\
 \end{align*}
 
 
@@ -142,11 +143,11 @@ notation](plate_diagram.png){width=540}
         \frac{\partial q_{ijk}^{(t)}}{\partial \mu_k}
     + \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
         \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k} \\
-\frac{\partial \L_c}{\partial \Sigma_k} &= 
+\frac{\partial \L_c}{\partial \Pi_k} &= 
     \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial q_{ijk}^{(t)}}
-        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Pi_k}
     + \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial d_{ijk}^{(t)}}
-        \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k}
+        \frac{\partial d_{ijk}^{(t)}}{\partial \Pi_k}
 \end{align*}
 
 We can simplify the backward pass by inlining those derivatives that depend on
@@ -178,13 +179,143 @@ fixed $i$, $j$, and $t$. We get:
         + \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
           \frac{\partial d_{ijk}^{(t)}}{\partial \mu_k}
     \right) \\
-\frac{\partial \L_c}{\partial \Sigma_k} &= 
+\frac{\partial \L_c}{\partial \Pi_k} &= 
     \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
         \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
-        \frac{\partial q_{ijk}^{(t)}}{\partial \Sigma_k}
+        \frac{\partial q_{ijk}^{(t)}}{\partial \Pi_k}
         + \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
-          \frac{\partial d_{ijk}^{(t)}}{\partial \Sigma_k}
+          \frac{\partial d_{ijk}^{(t)}}{\partial \Pi_k}
     \right) \\
 \end{align*}
 
-## 
+## Sympy derivation of confidence backward pass
+
+```{python}
+import sympy as sp
+from sympy import symbols, IndexedBase, Idx
+from sympy.printing.latex import latex
+```
+
+```{python}
+def simplify_subterm(expr, subterm_idx):
+    args = list(expr.args)
+    args[subterm_idx] = sp.simplify(args[subterm_idx])
+    return expr.func(*args)
+
+```
+
+```{python}
+N, T, H, W = symbols('N T H W', integer=True)
+
+i, j, k, t = map(Idx, 'i j k t'.split())
+i_, j_, k_, t_ = map(Idx, "i' j' k' t'".split())
+
+i_assumption = sp.Q.nonnegative(i) & sp.Q.le(i, H - 1)
+j_assumption = sp.Q.nonnegative(j) & sp.Q.le(j, W - 1)
+k_assumption = sp.Q.nonnegative(k) & sp.Q.le(k, N - 1)
+t_assumption = sp.Q.nonnegative(t) & sp.Q.le(t, T - 1)
+
+v, tau, mu = [sp.MatrixSymbol(name, 3, 1) for name in r'v \tau \mu'.split()]
+Pi  = sp.MatrixSymbol(r'\Pi', 3, 3)
+
+Pi_assumption = sp.Q.symmetric(Pi)
+
+lmbda, d, q, l, w, c, L_c, y = map(
+    sp.Symbol, r'\lambda d q l w c L_c y'.split()
+)
+
+lmbda, q = map(IndexedBase, r'\lambda q'.split())
+```
+
+```{python}
+cross_entropy = lambda p, y: -(1 - y) * sp.log(1 - p) - y * sp.log(p)
+
+
+c_expr = 1 - sp.exp(-sp.Sum(sp.exp(-q[i, j, k_, t]/2 + lmbda[k_]), (k_, 0, N-1)))
+L_c_expr = cross_entropy(c, y)
+
+q_expr = (mu - tau - d*v).T * Pi * (mu - tau - d*v)
+d_expr = (mu - tau).T * Pi * v / (v.T * Pi * v)
+```
+
+---
+
+$\partial \L_c / \partial c_{ij}^{(t)} =$
+```{python}
+sp.diff(L_c_expr, c)
+```
+
+---
+
+$\partial c_{ij}^{(t)} / \partial \lambda_{k} =$
+```{python}
+sp.refine(sp.diff(c_expr, lmbda[k]).doit(), k_assumption)
+```
+
+---
+
+$\partial c_{ij}^{(t)} / \partial q_{ijk}^{(t)} =$
+```{python}
+sp.refine(sp.diff(c_expr, q[i, j, k, t]).doit(), k_assumption)
+```
+
+---
+
+$\partial q_{ijk}^{(t)} / \partial \Pi_k=$
+```{python}
+sp.diff(q_expr, Pi)
+```
+
+---
+
+$\partial q_{ijk}^{(t)} / \partial \mu_k=
+-\partial q_{ijk}^{(t)} / \partial \tau^{(t)}=
+-\frac{1}{d}\partial q_{ijk}^{(t)} / \partial v_{ij}^{(t)}=$
+```{python}
+sp.diff(q_expr, mu)
+```
+$$
+= 2\Pi(\mu - dv - \tau)
+$$
+
+---
+
+$\partial q_{ijk}^{(t)} / \partial d_{ijk}^{(t)}=$
+```{python}
+sp.diff(q_expr, d)
+```
+$$
+= -2(\mu - \tau - dv)^T\Pi v
+$$
+
+
+---
+
+$\partial d_{ijk}^{(t)} / \partial \Pi_k=$
+```{python}
+sp.diff(d_expr, Pi)
+```
+$$
+= \frac{1}{v^T \Pi v} (\mu - \tau) v^T
+-\frac{v^T \Pi (\mu - \tau)}{(v^T \Pi v)^2} v v^{T}
+$$
+
+---
+
+$\partial d_{ijk}^{(t)} / \partial v_{ij}^{(t)}=$
+```{python}
+sp.diff(d_expr, v)
+```
+$$
+= -2\frac{v^T \Pi (\mu - \tau)}{(v^T \Pi v)^2} \Pi v 
++ \frac{1}{v^T \Pi v} \Pi (\mu - \tau) 
+$$
+
+---
+
+$\partial d_{ijk}^{(t)} / \partial \tau^{(t)}=
+-\partial d_{ijk}^{(t)} / \partial \mu_k=$
+```{python}
+sp.diff(d_expr, tau)
+```
+
