@@ -16,6 +16,12 @@ set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -Xptxas -O3")
 # Core Library #
 ################
 
+# Automatically find all kernel files
+file(GLOB KERNEL_FILES
+  genmetaballs/src/cuda/core/kernels/*.cuh
+  genmetaballs/src/cuda/core/kernels/*.cu
+)
+
 add_library(genmetaballs_core
   genmetaballs/src/cuda/core/camera.cu
   genmetaballs/src/cuda/core/camera.cuh
@@ -28,8 +34,10 @@ add_library(genmetaballs_core
   genmetaballs/src/cuda/core/geometry.cuh
   genmetaballs/src/cuda/core/image.cuh
   genmetaballs/src/cuda/core/intersector.cuh
+  genmetaballs/src/cuda/core/temp_buffer.cuh
   genmetaballs/src/cuda/core/utils.cu
   genmetaballs/src/cuda/core/utils.cuh
+  ${KERNEL_FILES}
 )
 
 # Set include directories for the core library

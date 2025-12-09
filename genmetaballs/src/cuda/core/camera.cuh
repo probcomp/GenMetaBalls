@@ -58,3 +58,8 @@ struct PixelCoordRange {
     CUDA_CALLABLE Iterator begin() const;
     CUDA_CALLABLE Sentinel end() const;
 };
+
+// Declaration of get_pixel_coords (defined in forward.cu)
+CUDA_CALLABLE PixelCoordRange get_pixel_coords(const dim3 thread_idx, const dim3 block_idx,
+                                               const dim3 block_dim, const dim3 grid_dim,
+                                               const Intrinsics& intr);
