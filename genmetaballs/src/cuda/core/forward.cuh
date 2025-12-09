@@ -41,8 +41,8 @@ __global__ void render_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, cons
         }
         // the indexing is done this way because the underlying array2ds use
         // ij indexing, whereas the pixels uses xy indexing
-        img.confidence[intr.height - py][px] = confidence.get_confidence(conf_tmp);
-        img.depth[intr.height - py][px] = depth_numer / depth_denom;
+        img.confidence[intr.height - py - 1][px] = confidence.get_confidence(conf_tmp);
+        img.depth[intr.height - py - 1][px] = depth_numer / depth_denom;
     }
 }
 
