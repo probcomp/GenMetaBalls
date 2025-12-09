@@ -117,8 +117,12 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             // Calculate shared memory for FMB cache
             // CachedFMB: ~48 bytes (with alignment), cache ALL FMBs
             const size_t total_fmbs = fmbs.size();
+            // i hardcoded this to FMB datastruc
             const size_t fmb_cache_shmem =
-                total_fmbs * 48; // CachedFMB size with alignment (48 bytes per FMB)
+                total_fmbs *
+                48; // CachedFMB size with alignment (48 bytes per FMB with all the diff items
+                    // inside -- might have done the math wrong on this, but if i am not wrong, this
+                    // will hold up to 1000 metaballs before extending the shmem to 100kb)
 
             render_kernel_fmb_chunk_processing<Getter, Intersector, Blender>
                 <<<grid_size_3d, block_size_3d, fmb_cache_shmem>>>(
@@ -134,9 +138,13 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             }
 
             // Kernel 1b: Reduce across chunks using parallel sum
-            // Allocate shared memory: 3 buffers * (block_size.x * block_size.y * block_size.z)
-            size_t shmem_size =
-                3 * block_size_3d.x * block_size_3d.y * block_size_3d.z * sizeof(float);
+            // Allocate shared memory: 3 buffers * (max_pixels_in_block_tile * num_chunks)
+            // Calculate max pixels in block tile (same as get_pixel_coords)
+            const int num_pixels_x = int_ceil_div(intr.width, grid_size_3d.x * block_size_3d.x);
+            const int num_pixels_y = int_ceil_div(intr.height, grid_size_3d.y * block_size_3d.y);
+            const int max_pixels_in_block_tile =
+                block_size_3d.x * num_pixels_x * block_size_3d.y * num_pixels_y;
+            size_t shmem_size = 3 * max_pixels_in_block_tile * block_size_3d.z * sizeof(float);
             if (timings != nullptr)
                 cudaEventRecord(start_1b);
             render_kernel_fmb_reduce<<<grid_size_3d, block_size_3d, shmem_size>>>(
@@ -152,10 +160,15 @@ void render_fmbs(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& bl
             }
 
             // Kernel 1c: Finalize
+            // Must use same grid/block dimensions as kernel 1a and 1b (3D) for pixel tiling to
+            // match But over here we dont need to use the z-dimension (since this is post-reduce),
+            // so we use 2D block and grid.
+            dim3 block_size_2d(block_size_3d.x, block_size_3d.y, 1);
+            dim3 grid_size_2d(grid_size_3d.x, grid_size_3d.y, 1);
             if (timings != nullptr)
                 cudaEventRecord(start_1c);
             render_kernel_fmb_finalize<Confidence>
-                <<<grid_size, block_size>>>(*temp_buffers, confidence, intr, img);
+                <<<grid_size_2d, block_size_2d>>>(*temp_buffers, confidence, intr, img);
             if (timings != nullptr) {
                 cudaEventRecord(stop_1c);
                 cudaEventRecord(stop_total);

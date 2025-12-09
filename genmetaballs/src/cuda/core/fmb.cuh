@@ -24,12 +24,12 @@ private:
     float3 extent_;
 
 public:
-    FMB() : pose_{}, extent_{1.0f, 1.0f, 1.0f} {};
+    CUDA_CALLABLE FMB() : pose_{}, extent_{1.0f, 1.0f, 1.0f} {};
 
-    FMB(const Pose& pose, float x_extent, float y_extent, float z_extent) noexcept(false)
+    CUDA_CALLABLE FMB(const Pose& pose, float x_extent, float y_extent, float z_extent)
         : pose_{pose} {
-        if (x_extent <= 0 || y_extent <= 0 || z_extent <= 0)
-            throw std::domain_error("a metaball cannot have negative extent");
+        // if (x_extent <= 0 || y_extent <= 0 || z_extent <= 0)
+        //     throw std::domain_error("a metaball cannot have negative extent");
         extent_ = {x_extent, y_extent, z_extent};
     }
 

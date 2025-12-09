@@ -7,6 +7,26 @@
 #include "core/temp_buffer.cuh"
 #include "core/utils.cuh"
 
+// Inline implementation of get_pixel_coords to avoid multiple definition errors
+// (get_pixel_coords is declared in camera.cuh and defined in forward.cu)
+CUDA_CALLABLE __forceinline__ PixelCoordRange get_pixel_coords_inline(const dim3 thread_idx,
+                                                                      const dim3 block_idx,
+                                                                      const dim3 block_dim,
+                                                                      const dim3 grid_dim,
+                                                                      const Intrinsics& intr) {
+    // compute the number of pixels each thread should process
+    const auto num_pixels_x = int_ceil_div(intr.width, grid_dim.x * block_dim.x);
+    const auto num_pixels_y = int_ceil_div(intr.height, grid_dim.y * block_dim.y);
+    const auto start_x = (block_idx.x * block_dim.x + thread_idx.x) * num_pixels_x;
+    const auto start_y = (block_idx.y * block_dim.y + thread_idx.y) * num_pixels_y;
+    const auto end_x =
+        (start_x + num_pixels_x < intr.width) ? (start_x + num_pixels_x) : intr.width;
+    const auto end_y =
+        (start_y + num_pixels_y < intr.height) ? (start_y + num_pixels_y) : intr.height;
+    return PixelCoordRange{
+        .px_start = start_x, .px_end = end_x, .py_start = start_y, .py_end = end_y};
+}
+
 // ============================================================================
 // KERNEL 1: 3-KERNEL FMB CHUNK PARALLELIZATION
 // ============================================================================
@@ -34,7 +54,7 @@ __global__ void render_kernel_fmb_chunk_processing(
     dim3 grid_dim_2d(gridDim.x, gridDim.y, 1);
 
     auto pixel_coords =
-        get_pixel_coords(thread_idx_2d, block_idx_2d, block_dim_2d, grid_dim_2d, intr);
+        get_pixel_coords_inline(thread_idx_2d, block_idx_2d, block_dim_2d, grid_dim_2d, intr);
 
     const int fmb_chunk_idx = threadIdx.z; // FMB chunk index from 3rd block dimension
 
@@ -101,6 +121,10 @@ __global__ void render_kernel_fmb_chunk_processing(
     // Process each pixel in the tile
     for (const auto [px, py] : pixel_coords) {
         // Compute ray direction for this pixel (needed for intersection)
+
+        // NOTE: The intersection math is written out manually
+        // as opposed to using the Intersector class.
+
         const Vec3D ray = intr.get_ray_direction(px, py);
 
         // Process FMBs for this chunk with COALESCED access pattern
@@ -146,7 +170,6 @@ __global__ void render_kernel_fmb_chunk_processing(
                                           rot_inv_shifted.z / cached.extent.z};
             const Vec3D cov_inv_shifted = rot.apply(vecdiv_shifted);
             const float q = dot(shifted_vec, cov_inv_shifted);
-
             const float tmp = -0.5f * q + lambda;
             // the next check is needed to match the reference implementation
             // even though it is not in the paper.
@@ -175,33 +198,38 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
                                          uint32_t num_fmb_chunks, const Intrinsics& intr);
 
 // Kernel 1c: Finalize confidence and depth
+// CRITICAL: Must use same pixel tiling as kernel 1a and 1b to read from correct pixels
 template <typename Confidence>
 __global__ void render_kernel_fmb_finalize(TempBufferView<MemoryLocation::DEVICE> temp_buffers,
                                            const Confidence& confidence, const Intrinsics& intr,
                                            ImageView<MemoryLocation::DEVICE> img) {
-    // Calculate pixel coordinates
-    const int px = blockIdx.x * blockDim.x + threadIdx.x;
-    const int py = blockIdx.y * blockDim.y + threadIdx.y;
+    // Use same pixel coordinate calculation as kernel 1a and 1b (pixel tiling)
+    dim3 thread_idx_2d(threadIdx.x, threadIdx.y, 0);
+    dim3 block_idx_2d(blockIdx.x, blockIdx.y, 0);
+    dim3 block_dim_2d(blockDim.x, blockDim.y, 1);
+    dim3 grid_dim_2d(gridDim.x, gridDim.y, 1);
 
-    // Early exit if out of bounds
-    if (px >= intr.width || py >= intr.height)
-        return;
-
-    const int img_row = intr.height - py - 1;
-    const uint32_t pixel_offset = img_row * intr.width + px;
+    auto pixel_coords =
+        get_pixel_coords_inline(thread_idx_2d, block_idx_2d, block_dim_2d, grid_dim_2d, intr);
 
     // Read reduced values from first 3 buffers (chunk 0)
     float* reduced_depth_numer = temp_buffers.get_buffer_ptr(0, 0);
     float* reduced_depth_denom = temp_buffers.get_buffer_ptr(0, 1);
     float* reduced_conf_tmp = temp_buffers.get_buffer_ptr(0, 2);
 
-    float depth_numer = reduced_depth_numer[pixel_offset];
-    float depth_denom = reduced_depth_denom[pixel_offset];
-    float conf_tmp = reduced_conf_tmp[pixel_offset];
+    // Process each pixel in the tile (same order as kernel 1a and 1b)
+    for (const auto [px, py] : pixel_coords) {
+        const int img_row = intr.height - py - 1;
+        const uint32_t pixel_offset = img_row * intr.width + px;
 
-    // Apply confidence and compute final depth
-    // Match original: no safety check, just divide (original doesn't check)
-    // But ensure we don't divide by zero to avoid NaN
-    img.confidence[img_row][px] = confidence.get_confidence(conf_tmp);
-    img.depth[img_row][px] = (depth_denom > 0.0f) ? (depth_numer / depth_denom) : 0.0f;
+        float depth_numer = reduced_depth_numer[pixel_offset];
+        float depth_denom = reduced_depth_denom[pixel_offset];
+        float conf_tmp = reduced_conf_tmp[pixel_offset];
+
+        // Apply confidence and compute final depth
+        // Match original: no safety check, just divide (original doesn't check)
+        // But ensure we don't divide by zero to avoid NaN
+        img.confidence[img_row][px] = confidence.get_confidence(conf_tmp);
+        img.depth[img_row][px] = (depth_denom > 0.0f) ? (depth_numer / depth_denom) : 0.0f;
+    }
 }
