@@ -319,5 +319,5 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
           &render_fmbs<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>,
           "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
           nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"),
-          nb::arg("img"));
+          nb::arg("img"), nb::arg("use_optimized") = true);
 }

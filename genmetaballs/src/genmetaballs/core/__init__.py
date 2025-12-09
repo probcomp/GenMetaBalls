@@ -83,15 +83,20 @@ def render_fmbs(
     intr: Intrinsics,
     extr: geometry.Pose,
     img: GPUImage | None = None,
+    use_optimized: bool = True,
 ) -> GPUImage:
     """Render the given FMB scene into the provided image view.
 
     If no image is provided, a new image with the dimensions specified by the intrinsics
     will be created.
+    
+    Args:
+        use_optimized: If True, use the optimized FMB-parallelized kernel. If False, use the original kernel.
     """
     if img is None:
         img = make_image(intr.height, intr.width, device="gpu")
 
+    render_func = None
     if isinstance(blender, FourParameterBlender):
         if isinstance(confidence, ZeroParameterConfidence):
             render_func = forward.render_fmbs_four_param_zero_confidence
@@ -102,10 +107,11 @@ def render_fmbs(
             render_func = forward.render_fmbs_three_param_zero_confidence
         elif isinstance(confidence, TwoParameterConfidence):
             render_func = forward.render_fmbs_three_param_two_confidence
-    else:
-        raise TypeError("Unsupported blender and confidence combination.")
+    
+    if render_func is None:
+        raise TypeError(f"Unsupported blender and confidence combination. Blender: {type(blender)}, Confidence: {type(confidence)}")
 
-    render_func(fmbs, blender, confidence, intr, extr, img.as_view())
+    render_func(fmbs, blender, confidence, intr, extr, img.as_view(), use_optimized)
     return img
 
 
