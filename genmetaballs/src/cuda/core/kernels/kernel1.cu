@@ -40,7 +40,6 @@ __global__ void render_kernel_fmb_reduce(TempBufferView<MemoryLocation::DEVICE> 
     // Calculate pixel tile dimensions (same as kernel 1a)
     const int num_pixels_x = int_ceil_div(intr.width, gridDim.x * blockDim.x);
     const int num_pixels_y = int_ceil_div(intr.height, gridDim.y * blockDim.y);
-    const int max_pixels_per_thread = num_pixels_x * num_pixels_y;
     const int start_x = (blockIdx.x * blockDim.x + threadIdx.x) * num_pixels_x;
     const int start_y = (blockIdx.y * blockDim.y + threadIdx.y) * num_pixels_y;
 
