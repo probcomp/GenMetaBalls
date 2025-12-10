@@ -76,11 +76,11 @@ public:
     }
 
     CUDA_CALLABLE auto operator[](const uint32_t i) {
-        return cuda::std::make_tuple(fmbs_[i], log_weights_[i]);
+        return cuda::std::tie(fmbs_[i], log_weights_[i]);
     }
 
     CUDA_CALLABLE auto operator[](const uint32_t i) const {
-        return cuda::std::make_tuple(fmbs_[i], log_weights_[i]);
+        return cuda::std::make_tuple(FMB(fmbs_[i]), float(log_weights_[i]));
     }
 
     CUDA_CALLABLE auto begin() {

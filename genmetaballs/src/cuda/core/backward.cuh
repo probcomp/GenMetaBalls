@@ -13,10 +13,11 @@ private:
     Vec3D* mu_buf_;
     Mat33* pi_buf_;
 
-    Vec3D tau_grad_;
-    Mat33 rho_grad_;
-    Vec3D mu_grad_;
-    Mat33 pi_grad_;
+    Vec3D* tau_grad_;
+    Mat33* rho_grad_;
+    float* lambda_grad_;
+    Vec3D* mu_grad_;
+    Mat33* pi_grad_;
 
     const FMBScene<MemoryLocation::DEVICE>& fmbs_;
     const Intrinsics& intr_;
@@ -27,13 +28,9 @@ public:
     __host__ FMBSceneGradient(const FMBScene<MemoryLocation::DEVICE>&, const Intrinsics& , const Pose&);
     __host__ ~FMBSceneGradient();
 
-    CUDA_CALLABLE void accumulate_cam_pose_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
-                                   float d, float q, float lambda);
-    CUDA_CALLABLE void accumulate_fmb_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
-                              float d, float q, float lambda);
-    CUDA_CALLABLE void adjust_cam_pose_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
-                               float confidence, float expected_confidence);
-    CUDA_CALLABLE void adjust_fmb_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
+    __device__ void buffer_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
+                                   float d, float q);
+    __device__ void accumulate_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
                                float confidence, float expected_confidence);
 
 };
@@ -70,9 +67,7 @@ __global__ void fwdbwd_kernel(
             depth_numer += d * w_tilde;
             depth_denom += w_tilde;
 
-            grad.accumulate_cam_pose_grads(py, px, fmb_idx, d, q, lambda);
-            grad.accumulate_fmb_grads(py, px, fmb_idx, d, q, lambda);
-            fmb_idx++;
+            grad.buffer_grads(py, px, fmb_idx++, d, q);
         }
         // the indexing is done this way because the underlying array2ds use
         // ij indexing, whereas the pixels uses xy indexing
@@ -85,9 +80,7 @@ __global__ void fwdbwd_kernel(
 
         fmb_idx = 0;
         for (const auto& [fmb, lambda] : fmb_getter.get_metaballs(ray)) {
-            grad.adjust_cam_pose_grads(py, px, fmb_idx, conf, expected_confidence);
-            grad.adjust_fmb_grads(py, px, fmb_idx, conf, expected_confidence);
-            fmb_idx++;
+            grad.accumulate_grads(py, px, fmb_idx++, conf, expected_confidence);
         }
     }
 

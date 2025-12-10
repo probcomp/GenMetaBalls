@@ -30,6 +30,20 @@ CUDA_CALLABLE inline Vec3D operator/(const Vec3D a, const float scalar) {
     return {a.x / scalar, a.y / scalar, a.z / scalar};
 }
 
+CUDA_CALLABLE inline Vec3D& operator+=(Vec3D& a, const Vec3D b) {
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
+    return a;
+}
+
+CUDA_CALLABLE inline Vec3D& operator-=(Vec3D& a, const Vec3D b) {
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+    return a;
+}
+
 CUDA_CALLABLE inline float dot(const Vec3D a, const Vec3D b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -124,6 +138,17 @@ CUDA_CALLABLE inline Mat33 operator*(const Mat33& a, const float scalar) {
     return scalar * a;
 }
 
+// Scalar-matrix division
+CUDA_CALLABLE inline Mat33 operator/(const Mat33& a, const float scalar) {
+    Mat33 result;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            result.m[i][j] = a.m[i][j] / scalar;
+        }
+    }
+    return result;
+}
+
 // Matrix addition
 CUDA_CALLABLE inline Mat33 operator+(const Mat33& a, const Mat33& b) {
     Mat33 result;
@@ -153,7 +178,37 @@ CUDA_CALLABLE inline Mat33 transpose(const Mat33& a) {
                  a.m[0][2], a.m[1][2], a.m[2][2]);
 }
 
+// Outer product of two vectors
+CUDA_CALLABLE inline Mat33 outer(const Vec3D& u, const Vec3D& v) {
+    return Mat33(u.x * v.x, u.x * v.y, u.x * v.z,
+                 u.y * v.x, u.y * v.y, u.y * v.z,
+                 u.z * v.x, u.z * v.y, u.z * v.z);
+}
+
 // END CLAUDE TODO
+
+__device__ inline void componentwise_atomic_add(Vec3D &v, const Vec3D &delta_v) 
+{
+    atomicAdd(&v.x, delta_v.x);
+    atomicAdd(&v.y, delta_v.y);
+    atomicAdd(&v.z, delta_v.z);
+}
+
+__device__ inline void componentwise_atomic_add(Mat33 &m, const Mat33 &delta_m) 
+{
+    atomicAdd(&m.m[0][0], delta_m.m[0][0]);
+    atomicAdd(&m.m[0][1], delta_m.m[0][1]);
+    atomicAdd(&m.m[0][2], delta_m.m[0][2]);
+    atomicAdd(&m.m[1][0], delta_m.m[1][0]);
+    atomicAdd(&m.m[1][1], delta_m.m[1][1]);
+    atomicAdd(&m.m[1][2], delta_m.m[1][2]);
+    atomicAdd(&m.m[2][0], delta_m.m[2][0]);
+    atomicAdd(&m.m[2][1], delta_m.m[2][1]);
+    atomicAdd(&m.m[2][2], delta_m.m[2][2]);
+}
+
+
+
 
 class Rotation {
 private:
