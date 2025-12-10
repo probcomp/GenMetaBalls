@@ -45,7 +45,7 @@ CUDA_CALLABLE PixelCoord FlattenedPixelCoordRange::Iterator::operator*() const {
 }
 
 CUDA_CALLABLE FlattenedPixelCoordRange::Iterator& FlattenedPixelCoordRange::Iterator::operator++() {
-    ++pixel_idx;
+    pixel_idx += stride;
     return *this;
 }
 
@@ -55,7 +55,7 @@ CUDA_CALLABLE bool operator!=(const FlattenedPixelCoordRange::Iterator& it,
 }
 
 CUDA_CALLABLE FlattenedPixelCoordRange::Iterator FlattenedPixelCoordRange::begin() const {
-    return Iterator{pixel_idx_start, pixel_idx_end, width, height, pixel_idx_start};
+    return Iterator{pixel_idx_start, pixel_idx_end, stride, width, height, pixel_idx_start};
 }
 
 CUDA_CALLABLE FlattenedPixelCoordRange::Sentinel FlattenedPixelCoordRange::end() const {

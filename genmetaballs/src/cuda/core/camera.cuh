@@ -69,12 +69,14 @@ struct FlattenedPixelCoordRange {
     uint32_t pixel_idx_end;
     uint32_t width;
     uint32_t height;
+    uint32_t stride;
 
     // the Iterator class holds the current pixel coordinates
     struct Iterator {
         // pixel range
         uint32_t pixel_idx_start;
         uint32_t pixel_idx_end;
+        uint32_t stride;
 
         // image dimensions
         uint32_t width;

@@ -38,16 +38,17 @@ get_pixel_coords_flattened(const dim3 thread_idx, const dim3 block_idx, const di
     const auto num_pixels = intr.num_pixels();
     const auto num_threads_per_block = block_dim.x * block_dim.y;
     const auto num_blocks = grid_dim.x * grid_dim.y;
-    const auto num_pixels_per_thread = int_ceil_div(num_pixels, num_blocks * num_threads_per_block);
+    const auto num_pixels_per_block = int_ceil_div(num_pixels, num_blocks);
+
     const auto flatten_block_idx = block_idx.y * grid_dim.x + block_idx.x;
     const auto flatten_thread_idx = thread_idx.y * block_dim.x + thread_idx.x;
-    const auto start_pixel =
-        (flatten_block_idx * num_threads_per_block + flatten_thread_idx) * num_pixels_per_thread;
-    const auto end_pixel = min(start_pixel + num_pixels_per_thread, num_pixels);
+    const auto start_pixel = flatten_block_idx * num_pixels_per_block + flatten_thread_idx;
+    const auto end_pixel = min(start_pixel + num_pixels_per_block, num_pixels);
     return FlattenedPixelCoordRange{.pixel_idx_start = start_pixel,
                                     .pixel_idx_end = end_pixel,
                                     .width = intr.width,
-                                    .height = intr.height};
+                                    .height = intr.height,
+                                    .stride = num_threads_per_block};
 }
 
 // ============================================================================
@@ -217,7 +218,7 @@ template <typename Confidence>
 __global__ void render_kernel_fmb_finalize(TempBufferView<MemoryLocation::DEVICE> temp_buffers,
                                            const Confidence& confidence, const Intrinsics& intr,
                                            ImageView<MemoryLocation::DEVICE> img) {
-    auto pixel_coords = get_pixel_coords_inline(threadIdx, blockIdx, blockDim, gridDim, intr);
+    auto pixel_coords = get_pixel_coords_flattened(threadIdx, blockIdx, blockDim, gridDim, intr);
 
     // Read reduced values from first 3 buffers (chunk 0)
     float* reduced_depth_numer = temp_buffers.get_buffer_ptr(0, 0);
