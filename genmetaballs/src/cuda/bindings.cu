@@ -6,6 +6,7 @@
 #include <nanobind/stl/vector.h>
 #include <tuple>
 
+#include "core/backward.cuh"
 #include "core/blender.cuh"
 #include "core/camera.cuh"
 #include "core/confidence.cuh"
@@ -29,6 +30,8 @@ template <MemoryLocation location>
 void bind_fmb_scene(nb::module_& m, const char* name);
 template <typename Blender, typename Confidence>
 void bind_render_fmbs(nb::module_& m, const char* name);
+template <typename Blender, typename Confidence>
+void bind_fwdbwd(nb::module_& m, const char* name);
 
 NB_MODULE(_genmetaballs_bindings, m) {
 
@@ -90,6 +93,23 @@ NB_MODULE(_genmetaballs_bindings, m) {
         forward, "render_fmbs_three_param_zero_confidence");
     bind_render_fmbs<FourParameterBlender, TwoParameterConfidence>(
         forward, "render_fmbs_four_param_two_confidence");
+
+    /*
+     * Backward module bindings
+     */
+    nb::module_ backward = m.def_submodule("backward", "Backward pass for FMB rendering");
+    nb::class_<FMBSceneGradient>(backward, "FMBSceneGradient")
+        .def(nb::init<const FMBScene<MemoryLocation::DEVICE>&, const Intrinsics&, const Pose&>(),
+             nb::arg("fmbs"), nb::arg("intr"), nb::arg("extr"),
+             "Construct gradient object for backward pass");
+    bind_fwdbwd<FourParameterBlender, ZeroParameterConfidence>(
+        backward, "fwdbwd_four_param_zero_confidence");
+    bind_fwdbwd<ThreeParameterBlender, TwoParameterConfidence>(
+        backward, "fwdbwd_three_param_two_confidence");
+    bind_fwdbwd<ThreeParameterBlender, ZeroParameterConfidence>(
+        backward, "fwdbwd_three_param_zero_confidence");
+    bind_fwdbwd<FourParameterBlender, TwoParameterConfidence>(
+        backward, "fwdbwd_four_param_two_confidence");
 
     /*
      * Geometry module bindings
@@ -320,4 +340,13 @@ void bind_render_fmbs(nb::module_& m, const char* name) {
           "Render the given FMB scene into the provided image view", nb::arg("fmbs"),
           nb::arg("blender"), nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"),
           nb::arg("img"));
+}
+
+template <typename Blender, typename Confidence>
+void bind_fwdbwd(nb::module_& m, const char* name) {
+    m.def(name,
+          &fwdbwd<AllGetter<MemoryLocation::DEVICE>, LinearIntersector, Blender, Confidence>,
+          "Forward and backward pass for FMB scene rendering", nb::arg("fmbs"), nb::arg("blender"),
+          nb::arg("confidence"), nb::arg("intr"), nb::arg("extr"), nb::arg("expected_img"),
+          nb::arg("grad"), nb::arg("output_img"));
 }

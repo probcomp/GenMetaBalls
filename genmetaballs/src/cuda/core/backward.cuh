@@ -22,33 +22,26 @@ private:
     const FMBScene<MemoryLocation::DEVICE>& fmbs_;
     const Intrinsics& intr_;
     const Pose& extr_;
-    
-public:
 
-    __host__ FMBSceneGradient(const FMBScene<MemoryLocation::DEVICE>&, const Intrinsics& , const Pose&);
+public:
+    __host__ FMBSceneGradient(const FMBScene<MemoryLocation::DEVICE>&, const Intrinsics&,
+                              const Pose&);
     __host__ ~FMBSceneGradient();
 
-    __device__ void buffer_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
-                                   float d, float q);
-    __device__ void accumulate_grads(uint32_t py, uint32_t px, uint32_t fmb_idx,
-                               float confidence, float expected_confidence);
-
+    __device__ void buffer_grads(uint32_t py, uint32_t px, uint32_t fmb_idx, float d, float q);
+    __device__ void accumulate_grads(uint32_t py, uint32_t px, uint32_t fmb_idx, float confidence,
+                                     float expected_confidence);
 };
 
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
-__global__ void fwdbwd_kernel(
-    const FMBScene<MemoryLocation::DEVICE>& fmbs,
-    const Blender& blender,
-    const Confidence& confidence,
-    const Intrinsics& intr,
-    const Pose& extr,
-    const ImageView<MemoryLocation::DEVICE> expected_img,
-    FMBSceneGradient grad,
-    ImageView<MemoryLocation::DEVICE> output_img) {
+__global__ void fwdbwd_kernel(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
+                              const Confidence& confidence, const Intrinsics& intr,
+                              const Pose& extr,
+                              const ImageView<MemoryLocation::DEVICE> expected_img,
+                              FMBSceneGradient grad, ImageView<MemoryLocation::DEVICE> output_img) {
 
     auto pixel_coords = get_pixel_coords(threadIdx, blockIdx, blockDim, gridDim, intr);
     auto fmb_getter = Getter(fmbs, extr);
-
 
     for (const auto [px, py] : pixel_coords) {
         float depth_denom = 0.0f, depth_numer = 0.0f, conf_tmp = 0.0f;
@@ -75,7 +68,7 @@ __global__ void fwdbwd_kernel(
         output_img.confidence[intr.height - py][px] = conf;
         output_img.depth[intr.height - py][px] = depth_numer / depth_denom;
 
-        //backward
+        // backward
         auto expected_confidence = expected_img.confidence[intr.height - py][px];
 
         fmb_idx = 0;
@@ -88,18 +81,11 @@ __global__ void fwdbwd_kernel(
 }
 
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
-void fwdbwd(
-    const FMBScene<MemoryLocation::DEVICE>& fmbs,
-    const Blender& blender,
-    const Confidence& confidence,
-    const Intrinsics& intr,
-    const Pose& extr,
-    const ImageView<MemoryLocation::DEVICE> expected_img,
-    FMBSceneGradient grad,
-    ImageView<MemoryLocation::DEVICE> output_img) 
-{
+void fwdbwd(const FMBScene<MemoryLocation::DEVICE>& fmbs, const Blender& blender,
+            const Confidence& confidence, const Intrinsics& intr, const Pose& extr,
+            const ImageView<MemoryLocation::DEVICE> expected_img, FMBSceneGradient grad,
+            ImageView<MemoryLocation::DEVICE> output_img) {
     auto kernel = fwdbwd_kernel<Getter, Intersector, Blender, Confidence>;
-    kernel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(
-        fmbs, blender, confidence, intr, extr, expected_img, grad, output_img
-    );
+    kernel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(fmbs, blender, confidence, intr, extr, expected_img,
+                                              grad, output_img);
 }

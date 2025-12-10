@@ -67,18 +67,21 @@ struct Mat33 {
         }
     }
 
-    CUDA_CALLABLE Mat33(float m00, float m01, float m02,
-                        float m10, float m11, float m12,
-                        float m20, float m21, float m22) {
-        m[0][0] = m00; m[0][1] = m01; m[0][2] = m02;
-        m[1][0] = m10; m[1][1] = m11; m[1][2] = m12;
-        m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
+    CUDA_CALLABLE Mat33(float m00, float m01, float m02, float m10, float m11, float m12, float m20,
+                        float m21, float m22) {
+        m[0][0] = m00;
+        m[0][1] = m01;
+        m[0][2] = m02;
+        m[1][0] = m10;
+        m[1][1] = m11;
+        m[1][2] = m12;
+        m[2][0] = m20;
+        m[2][1] = m21;
+        m[2][2] = m22;
     }
 
     CUDA_CALLABLE static Mat33 identity() {
-        return Mat33(1.0f, 0.0f, 0.0f,
-                     0.0f, 1.0f, 0.0f,
-                     0.0f, 0.0f, 1.0f);
+        return Mat33(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
     }
 
     CUDA_CALLABLE Mat33& operator+=(const Mat33& b) {
@@ -116,11 +119,9 @@ CUDA_CALLABLE inline Mat33 operator*(const Mat33& a, const Mat33& b) {
 
 // Matrix-vector multiplication
 CUDA_CALLABLE inline Vec3D operator*(const Mat33& a, const Vec3D v) {
-    return {
-        a.m[0][0] * v.x + a.m[0][1] * v.y + a.m[0][2] * v.z,
-        a.m[1][0] * v.x + a.m[1][1] * v.y + a.m[1][2] * v.z,
-        a.m[2][0] * v.x + a.m[2][1] * v.y + a.m[2][2] * v.z
-    };
+    return {a.m[0][0] * v.x + a.m[0][1] * v.y + a.m[0][2] * v.z,
+            a.m[1][0] * v.x + a.m[1][1] * v.y + a.m[1][2] * v.z,
+            a.m[2][0] * v.x + a.m[2][1] * v.y + a.m[2][2] * v.z};
 }
 
 // Scalar-matrix multiplication
@@ -173,29 +174,25 @@ CUDA_CALLABLE inline Mat33 operator-(const Mat33& a, const Mat33& b) {
 
 // Matrix transpose
 CUDA_CALLABLE inline Mat33 transpose(const Mat33& a) {
-    return Mat33(a.m[0][0], a.m[1][0], a.m[2][0],
-                 a.m[0][1], a.m[1][1], a.m[2][1],
-                 a.m[0][2], a.m[1][2], a.m[2][2]);
+    return Mat33(a.m[0][0], a.m[1][0], a.m[2][0], a.m[0][1], a.m[1][1], a.m[2][1], a.m[0][2],
+                 a.m[1][2], a.m[2][2]);
 }
 
 // Outer product of two vectors
 CUDA_CALLABLE inline Mat33 outer(const Vec3D& u, const Vec3D& v) {
-    return Mat33(u.x * v.x, u.x * v.y, u.x * v.z,
-                 u.y * v.x, u.y * v.y, u.y * v.z,
-                 u.z * v.x, u.z * v.y, u.z * v.z);
+    return Mat33(u.x * v.x, u.x * v.y, u.x * v.z, u.y * v.x, u.y * v.y, u.y * v.z, u.z * v.x,
+                 u.z * v.y, u.z * v.z);
 }
 
 // END CLAUDE TODO
 
-__device__ inline void componentwise_atomic_add(Vec3D &v, const Vec3D &delta_v) 
-{
+__device__ inline void componentwise_atomic_add(Vec3D& v, const Vec3D& delta_v) {
     atomicAdd(&v.x, delta_v.x);
     atomicAdd(&v.y, delta_v.y);
     atomicAdd(&v.z, delta_v.z);
 }
 
-__device__ inline void componentwise_atomic_add(Mat33 &m, const Mat33 &delta_m) 
-{
+__device__ inline void componentwise_atomic_add(Mat33& m, const Mat33& delta_m) {
     atomicAdd(&m.m[0][0], delta_m.m[0][0]);
     atomicAdd(&m.m[0][1], delta_m.m[0][1]);
     atomicAdd(&m.m[0][2], delta_m.m[0][2]);
@@ -206,9 +203,6 @@ __device__ inline void componentwise_atomic_add(Mat33 &m, const Mat33 &delta_m)
     atomicAdd(&m.m[2][1], delta_m.m[2][1]);
     atomicAdd(&m.m[2][2], delta_m.m[2][2]);
 }
-
-
-
 
 class Rotation {
 private:
