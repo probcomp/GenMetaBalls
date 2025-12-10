@@ -1327,6 +1327,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use-wandb", action="store_true", help="Enable wandb logging for benchmark results"
     )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=None,
+        help="Name for the wandb run (default: auto-generated)",
+    )
 
     args = parser.parse_args()
 
@@ -1341,13 +1347,16 @@ if __name__ == "__main__":
             wandb.init(
                 entity="metaballers",
                 project="genmetaballs-benchmark",
+                name=args.run_name,
                 config={
                     "num_fmbs": args.num_fmbs,
                     "width": args.width,
                     "height": args.height,
                     "kernel_id": args.kernel_id,
                     "grid_size": "x".join(map(str, args.grid_size)),
+                    "num_blocks": args.grid_size[0] * args.grid_size[1],
                     "block_size": "x".join(map(str, args.block_size)),
+                    "num_threads": args.block_size[0] * args.block_size[1],
                     "warmup": args.warmup,
                     "num_fmb_chunks": args.num_fmb_chunks,
                     "num_views": num_views,
