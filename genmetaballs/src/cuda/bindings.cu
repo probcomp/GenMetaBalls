@@ -101,7 +101,17 @@ NB_MODULE(_genmetaballs_bindings, m) {
     nb::class_<FMBSceneGradient>(backward, "FMBSceneGradient")
         .def(nb::init<const FMBScene<MemoryLocation::DEVICE>&, const Intrinsics&, const Pose&>(),
              nb::arg("fmbs"), nb::arg("intr"), nb::arg("extr"),
-             "Construct gradient object for backward pass");
+             "Construct gradient object for backward pass")
+        .def("get_tau_grad", &FMBSceneGradient::get_tau_grad,
+             "Get gradient with respect to camera translation")
+        .def("get_rho_grad", &FMBSceneGradient::get_rho_grad,
+             "Get gradient with respect to camera rotation")
+        .def("get_lambda_grad", &FMBSceneGradient::get_lambda_grad,
+             "Get gradients with respect to FMB log weights")
+        .def("get_mu_grad", &FMBSceneGradient::get_mu_grad,
+             "Get gradients with respect to FMB centers/means")
+        .def("get_pi_grad", &FMBSceneGradient::get_pi_grad,
+             "Get gradients with respect to FMB precision matrices");
     bind_fwdbwd<FourParameterBlender, ZeroParameterConfidence>(
         backward, "fwdbwd_four_param_zero_confidence");
     bind_fwdbwd<ThreeParameterBlender, TwoParameterConfidence>(
@@ -134,6 +144,27 @@ NB_MODULE(_genmetaballs_bindings, m) {
 
     geometry.def("dot", &dot, "Dot product of two `Vec3D`s", nb::arg("a"), nb::arg("b"));
     geometry.def("cross", &cross, "Cross product of two `Vec3D`s", nb::arg("a"), nb::arg("b"));
+
+    nb::class_<Mat33>(geometry, "Mat33")
+        .def(nb::init<>())
+        .def(nb::init<float, float, float, float, float, float, float, float, float>())
+        .def_prop_ro(
+            "data",
+            [](const Mat33& mat) {
+                std::vector<std::vector<float>> result(3, std::vector<float>(3));
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        result[i][j] = mat.m[i][j];
+                    }
+                }
+                return result;
+            },
+            "Get matrix data as 3x3 nested list")
+        .def("__repr__", [](const Mat33& mat) {
+            return nb::str("Mat33([[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]])")
+                .format(mat.m[0][0], mat.m[0][1], mat.m[0][2], mat.m[1][0], mat.m[1][1], mat.m[1][2],
+                        mat.m[2][0], mat.m[2][1], mat.m[2][2]);
+        });
 
     nb::class_<Rotation>(geometry, "Rotation")
         .def(nb::init<>())

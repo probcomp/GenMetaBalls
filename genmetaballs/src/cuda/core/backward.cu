@@ -106,3 +106,36 @@ __device__ void FMBSceneGradient::accumulate_grads(uint32_t i, uint32_t j, uint3
     componentwise_atomic_add(mu_grad_[k], adjustment * mu_buf_[ijk]);
     componentwise_atomic_add(pi_grad_[k], adjustment * pi_buf_[ijk]);
 }
+
+__host__ Vec3D FMBSceneGradient::get_tau_grad() const {
+    Vec3D result;
+    CUDA_CHECK(cudaMemcpy(&result, tau_grad_, sizeof(Vec3D), cudaMemcpyDeviceToHost));
+    return result;
+}
+
+__host__ Mat33 FMBSceneGradient::get_rho_grad() const {
+    Mat33 result;
+    CUDA_CHECK(cudaMemcpy(&result, rho_grad_, sizeof(Mat33), cudaMemcpyDeviceToHost));
+    return result;
+}
+
+__host__ std::vector<float> FMBSceneGradient::get_lambda_grad() const {
+    const auto N = fmbs_.size();
+    std::vector<float> result(N);
+    CUDA_CHECK(cudaMemcpy(result.data(), lambda_grad_, N * sizeof(float), cudaMemcpyDeviceToHost));
+    return result;
+}
+
+__host__ std::vector<Vec3D> FMBSceneGradient::get_mu_grad() const {
+    const auto N = fmbs_.size();
+    std::vector<Vec3D> result(N);
+    CUDA_CHECK(cudaMemcpy(result.data(), mu_grad_, N * sizeof(Vec3D), cudaMemcpyDeviceToHost));
+    return result;
+}
+
+__host__ std::vector<Mat33> FMBSceneGradient::get_pi_grad() const {
+    const auto N = fmbs_.size();
+    std::vector<Mat33> result(N);
+    CUDA_CHECK(cudaMemcpy(result.data(), pi_grad_, N * sizeof(Mat33), cudaMemcpyDeviceToHost));
+    return result;
+}

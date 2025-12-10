@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <cuda_runtime.h>
+#include <vector>
 
 #include "forward.cuh"
+#include "utils.cuh"
 
 class FMBSceneGradient {
 private:
@@ -31,6 +33,13 @@ public:
     __device__ void buffer_grads(uint32_t py, uint32_t px, uint32_t fmb_idx, float d, float q);
     __device__ void accumulate_grads(uint32_t py, uint32_t px, uint32_t fmb_idx, float confidence,
                                      float expected_confidence);
+
+    // Gradient accessors
+    __host__ Vec3D get_tau_grad() const;
+    __host__ Mat33 get_rho_grad() const;
+    __host__ std::vector<float> get_lambda_grad() const;
+    __host__ std::vector<Vec3D> get_mu_grad() const;
+    __host__ std::vector<Mat33> get_pi_grad() const;
 };
 
 template <typename Getter, typename Intersector, typename Blender, typename Confidence>
