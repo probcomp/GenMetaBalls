@@ -134,7 +134,8 @@ notation](plate_diagram.png){width=540}
         \frac{\partial q_{ijk}^{(t)}}{\partial v_{ij}^{(t)}} \\
 \frac{\partial \L_c}{\partial \rho^{(t)}} &= 
     \sum_{i,j} \frac{\partial \L_c}{\partial v_{ij}^{(t)}}
-        \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} \\
+        \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} 
+    = \sum_{i,j} \frac{\partial \L_c}{\partial v_{ij}^{(t)}} v_{ij}^\top \\
 \frac{\partial \L_c}{\partial \lambda_k} &= 
     \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
         \frac{\partial c_{ij}^{(t)}}{\partial \lambda_k} \\
@@ -155,20 +156,20 @@ fixed $i$, $j$, and $t$. We get:
 
 \begin{align*}
 \frac{\partial \L_c}{\partial \tau^{(t)}} &= 
-    \sum_{i,j}\sum_k \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+    \sum_{i,j}\frac{\partial \L_c}{\partial c_{ij}^{(t)}} \sum_k 
         \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
             \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
             \frac{\partial d_{ijk}^{(t)}}{\partial \tau^{(t)}}
             + \frac{\partial q_{ijk}^{(t)}}{\partial \tau^{(t)}}
       \right)\\
 \frac{\partial \L_c}{\partial \rho^{(t)}} &= 
-    \sum_{i,j} \sum_{k} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
+    \sum_{i,j}  \frac{\partial \L_c}{\partial c_{ij}^{(t)}}\sum_{k}
     \frac{\partial c_{ij}^{(t)}}{\partial q_{ijk}^{(t)}} \left(
         \frac{\partial q_{ijk}^{(t)}}{\partial d_{ijk}^{(t)}}
         \frac{\partial d_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
         + \frac{\partial q_{ijk}^{(t)}}{\partial v_{ij}^{(t)}}
     \right) 
-        \frac{\partial v_{ij}^{(t)}}{\partial \rho^{(t)}} \\
+        v_{ij}^\top\\
 \frac{\partial \L_c}{\partial \lambda_k} &= 
     \sum_{t}\sum_{i,j} \frac{\partial \L_c}{\partial c_{ij}^{(t)}}
         \frac{\partial c_{ij}^{(t)}}{\partial \lambda_k} \\
@@ -194,6 +195,7 @@ fixed $i$, $j$, and $t$. We get:
 import sympy as sp
 from sympy import symbols, IndexedBase, Idx
 from sympy.printing.latex import latex
+from sympy.utilities.codegen import codegen
 ```
 
 ```{python}
@@ -251,6 +253,9 @@ $\partial c_{ij}^{(t)} / \partial \lambda_{k} =$
 ```{python}
 sp.refine(sp.diff(c_expr, lmbda[k]).doit(), k_assumption)
 ```
+$$
+= (1 - c_{ij}^{(t)}) \exp\left(\lambda_k - \frac{1}{2} q_{ijk}^{(t)}\right)
+$$
 
 ---
 
@@ -258,6 +263,9 @@ $\partial c_{ij}^{(t)} / \partial q_{ijk}^{(t)} =$
 ```{python}
 sp.refine(sp.diff(c_expr, q[i, j, k, t]).doit(), k_assumption)
 ```
+$$
+= -\frac{1}{2}(1 - c_{ij}^{(t)}) \exp\left(\lambda_k - \frac{1}{2} q_{ijk}^{(t)}\right)
+$$
 
 ---
 
@@ -318,4 +326,47 @@ $\partial d_{ijk}^{(t)} / \partial \tau^{(t)}=
 ```{python}
 sp.diff(d_expr, tau)
 ```
+
+## Derivatives of metaball parameters
+
+
+```{python}
+softplus = lambda x: sp.log(1 + sp.exp(x))
+qi, qj, qk, qr, u1, u2, u3 = map(sp.Symbol, 'q_i q_j q_k q_r u_1 u_2 u_3'.split())
+
+s = 1 / (qi**2 + qj**2 + qk**2 + qr**2)
+
+
+rotmat = sp.Matrix([
+    [1 - 2*s * (qj**2 + qk**2), 2*s*(qi*qj - qk*qr)    , 2*s*(qi*qk + qj*qr)],
+    [2*s*(qi*qj + qk*qr)      , 1 - 2*s*(qi**2 + qk**2), 2*s*(qj*qk - qi*qr)],
+    [2*s*(qi*qk - qj*qr)       , 2*s*(qj*qk + qi*qr)      , 1 - 2*s*(qi**2 + qj**2)],
+])
+diag = sp.Matrix([[softplus(u1), 0, 0], [0, softplus(u2), 0], [0, 0, softplus(u3)]]) 
+Pimat = sp.simplify(rotmat * diag * rotmat.T)
+Pigrad = sp.Matrix([[sp.Symbol(f'G_{{{i}{j}}}') for j in range(3)] for i in range(3)])
+```
+
+```{python}
+exprs = {
+'dPi_dqi': sp.diff(Pimat, qi),
+'dPi_dqj': sp.diff(Pimat, qj),
+'dPi_dqk': sp.diff(Pimat, qk),
+'dPi_dqr': sp.diff(Pimat, qr),
+'dPi_du1': sp.diff(Pimat, u1),
+'dPi_du2': sp.diff(Pimat, u2),
+'dPi_du3': sp.diff(Pimat, u3),
+}
+
+codes = []
+
+for item in exprs.items():
+    [(c_name, c_code), (h_name, c_header)] = codegen(item, language='C')
+    codes.append(c_code)
+    print(c_code)
+```
+
+```{python}
+```
+
 
